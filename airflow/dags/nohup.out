@@ -1,0 +1,52 @@
+[I 2025-02-27 19:46:39.833 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2025-02-27 19:46:39.837 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2025-02-27 19:46:39.842 ServerApp] jupyterlab | extension was successfully linked.
+[W 2025-02-27 19:46:39.844 JupyterNotebookApp] 'password' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[W 2025-02-27 19:46:39.847 ServerApp] ServerApp.password config is deprecated in 2.0. Use PasswordIdentityProvider.hashed_password.
+[I 2025-02-27 19:46:39.847 ServerApp] notebook | extension was successfully linked.
+[I 2025-02-27 19:46:40.045 ServerApp] notebook_shim | extension was successfully linked.
+[I 2025-02-27 19:46:40.083 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2025-02-27 19:46:40.085 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2025-02-27 19:46:40.086 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2025-02-27 19:46:40.088 LabApp] JupyterLab extension loaded from /home/ubuntu/anaconda3/envs/Project/lib/python3.8/site-packages/jupyterlab
+[I 2025-02-27 19:46:40.088 LabApp] JupyterLab application directory is /home/ubuntu/anaconda3/envs/Project/share/jupyter/lab
+[I 2025-02-27 19:46:40.088 LabApp] Extension Manager is 'pypi'.
+[I 2025-02-27 19:46:40.115 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2025-02-27 19:46:40.119 ServerApp] notebook | extension was successfully loaded.
+[I 2025-02-27 19:46:40.119 ServerApp] The port 8912 is already in use, trying another port.
+[I 2025-02-27 19:46:40.119 ServerApp] Serving notebooks from local directory: /home/lab13/airflow/dags
+[I 2025-02-27 19:46:40.119 ServerApp] Jupyter Server 2.14.2 is running at:
+[I 2025-02-27 19:46:40.119 ServerApp] http://ip-172-31-13-81:8913/tree
+[I 2025-02-27 19:46:40.119 ServerApp]     http://127.0.0.1:8913/tree
+[I 2025-02-27 19:46:40.119 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[I 2025-02-27 19:46:40.140 ServerApp] Skipped non-installed server(s): bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2025-02-27 19:49:50.033 ServerApp] jupyter_lsp | extension was successfully linked.
+[I 2025-02-27 19:49:50.037 ServerApp] jupyter_server_terminals | extension was successfully linked.
+[I 2025-02-27 19:49:50.042 ServerApp] jupyterlab | extension was successfully linked.
+[W 2025-02-27 19:49:50.044 JupyterNotebookApp] 'password' has moved from NotebookApp to ServerApp. This config will be passed to ServerApp. Be sure to update your config before our next release.
+[W 2025-02-27 19:49:50.047 ServerApp] ServerApp.password config is deprecated in 2.0. Use PasswordIdentityProvider.hashed_password.
+[I 2025-02-27 19:49:50.047 ServerApp] notebook | extension was successfully linked.
+[I 2025-02-27 19:49:50.242 ServerApp] notebook_shim | extension was successfully linked.
+[I 2025-02-27 19:49:50.280 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2025-02-27 19:49:50.282 ServerApp] jupyter_lsp | extension was successfully loaded.
+[I 2025-02-27 19:49:50.283 ServerApp] jupyter_server_terminals | extension was successfully loaded.
+[I 2025-02-27 19:49:50.284 LabApp] JupyterLab extension loaded from /home/ubuntu/anaconda3/envs/Project/lib/python3.8/site-packages/jupyterlab
+[I 2025-02-27 19:49:50.284 LabApp] JupyterLab application directory is /home/ubuntu/anaconda3/envs/Project/share/jupyter/lab
+[I 2025-02-27 19:49:50.285 LabApp] Extension Manager is 'pypi'.
+[I 2025-02-27 19:49:50.312 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2025-02-27 19:49:50.315 ServerApp] notebook | extension was successfully loaded.
+[I 2025-02-27 19:49:50.316 ServerApp] The port 8913 is already in use, trying another port.
+[I 2025-02-27 19:49:50.316 ServerApp] Serving notebooks from local directory: /home/lab13/airflow/dags
+[I 2025-02-27 19:49:50.316 ServerApp] Jupyter Server 2.14.2 is running at:
+[I 2025-02-27 19:49:50.316 ServerApp] http://ip-172-31-13-81:8914/tree
+[I 2025-02-27 19:49:50.316 ServerApp]     http://127.0.0.1:8914/tree
+[I 2025-02-27 19:49:50.316 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[I 2025-02-27 19:49:50.337 ServerApp] Skipped non-installed server(s): bash-language-server, dockerfile-language-server-nodejs, javascript-typescript-langserver, jedi-language-server, julia-language-server, pyright, python-language-server, python-lsp-server, r-languageserver, sql-language-server, texlab, typescript-language-server, unified-language-server, vscode-css-languageserver-bin, vscode-html-languageserver-bin, vscode-json-languageserver-bin, yaml-language-server
+[I 2025-02-27 19:50:00.074 ServerApp] 302 GET / (@1.249.71.139) 0.51ms
+[I 2025-02-27 19:50:00.113 JupyterNotebookApp] 302 GET /tree? (@1.249.71.139) 0.57ms
+[I 2025-02-27 19:50:04.741 ServerApp] User 1ef2d82929e343ce9223ee6cecfaeb3e logged in.
+[I 2025-02-27 19:50:04.742 ServerApp] 302 POST /login?next=%2Ftree%3F (1ef2d82929e343ce9223ee6cecfaeb3e@1.249.71.139) 43.54ms
+[C 2025-02-27 21:49:05.515 ServerApp] received signal 15, stopping
+[C 2025-02-27 21:49:05.515 ServerApp] received signal 15, stopping
+[I 2025-02-27 21:49:05.516 ServerApp] Shutting down 5 extensions
+[I 2025-02-27 21:49:05.516 ServerApp] Shutting down 5 extensions

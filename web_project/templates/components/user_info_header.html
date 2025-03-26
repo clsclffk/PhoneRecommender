@@ -1,0 +1,176 @@
+{% load static %}
+
+<div class="user-info-header">
+
+  <h2 class="report-title">나의 취미를 담은 스마트폰 분석·추천 결과 살펴보기</h2>
+
+  <div class="user-info-cards">
+
+    <!-- 사용자 정보 카드 -->
+    <div class="info-card">
+      {% if gender_kor == '남성' %}
+        <img src="{% static 'img/male.png' %}" alt="남성 사용자 아이콘" class="user-icon">
+      {% else %}
+        <img src="{% static 'img/female.png' %}" alt="여성 사용자 아이콘" class="user-icon">
+      {% endif %}
+    
+      <div class="user-text">
+        <p class="nickname">{{ nickname }} 님</p>
+        <p class="sub-info"># {{ age_group_kor }} &nbsp; # {{ gender_kor }}</p>
+      </div>
+    </div>
+
+    <!-- 취미 영역 카드 -->
+    <div class="info-card vertical">
+      <p class="section-title">취미 영역</p>
+      <p class="highlight-text">{{ hobby }}</p>
+    </div>
+
+    <!-- 기능 키워드 카드 -->
+    <div class="info-card vertical">
+      <p class="section-title">기능 키워드</p>
+      <div class="keyword-list">
+        {% for keyword in selected_keywords %}
+          <span>{{ keyword }}</span>{% if not forloop.last %} {% endif %}
+        {% empty %}
+          <span>선택된 키워드 없음</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div> 
+
+</div> 
+
+<style>
+
+/* user-info-header */
+.user-info-header {
+  width: 100%;
+  max-width: 1500px;     /* 패딩 양쪽 100px 포함 */
+  margin: 0 auto;
+  padding: 0 50px;
+}
+
+/* graph-container도 동일하게 */
+.graph-container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 100px;
+}
+
+/* 리포트 타이틀 */
+.report-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.user-info-cards {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap; /* 반응형 */
+}
+
+/* ====== 각 카드 기본 ====== */
+.info-card {
+  flex: 1;
+  min-width: 250px;
+  background-color: #fafafa;
+  padding: 10px 10px;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  display: grid;
+  grid-template-columns: 100px auto;
+  flex-direction: row;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  padding-left: 30px;
+}
+
+.info-card.vertical {
+  display: flex;
+  flex-direction: column;  /* 아이콘과 텍스트를 세로로 배치 */
+  align-items: center;
+  gap: 15px;
+}
+
+.info-card .user-text {
+  display: flex; 
+  align-items: center;
+  gap: 10px;             /* 아이콘과 텍스트 간의 간격 */
+  margin-left: 40px;     /* 왼쪽에 추가 간격 */
+}
+
+.info-card .user-icon {
+  width: 100px;
+  height: 100px;
+  margin: 0;             /* 기존 margin 제거 */
+}
+
+/* ====== 사용자 아이콘 ====== */
+.user-icon {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 15px;
+}
+
+/* ====== 사용자 이름/정보 텍스트 ====== */
+.user-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.nickname {
+  font-size: 30px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.sub-info {
+  font-size: 20px;
+  color: #333;
+  margin-top: 0px;
+}
+
+/* ====== 카드 제목과 강조 텍스트 ====== */
+.section-title {
+  font-size: 20px;
+  font-weight: normal;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.highlight-text {
+  font-size: 30px;
+  font-weight: bold;
+  color: #333;
+  margin-top: 10px;
+}
+
+/* ====== 키워드 리스트 ====== */
+.keyword-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 0px;
+  font-size: 30px;
+  max-width: 300px;
+  margin-left: auto;         /* 전체 중앙 정렬 */
+  margin-right: auto;
+}
+
+.keyword-list span {
+  flex-basis: calc(33.333% - 20px); /* 한 줄에 최대 3개씩 */
+  text-align: center;
+}
+
+</style>

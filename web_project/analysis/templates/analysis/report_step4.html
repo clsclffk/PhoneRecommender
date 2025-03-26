@@ -1,0 +1,569 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}나의 취미생활 분석 리포트 - 스마트폰 추천{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- 상단 유저 정보 헤더 -->
+  {% include "components/user_info_header.html" %}
+
+  <!-- 설명 영역 -->
+  <div class="section-description">
+    <h2>
+      나에게 딱 맞는 스마트폰 기종 추천
+      <span class="sub-title">&nbsp;|&nbsp; {{ nickname }}님이 멋진 취미생활을 즐길 수 있도록 스마트폰 기종을 추천해드릴게요!</span>
+    </h2>
+  </div>
+
+  <!-- 추천 리포트 섹션 -->
+  <div class="recommendation-section recommend-section-1">
+
+    <!-- 추천 스마트폰 기종 -->
+    <h3 class="keyword-title">
+      추천 스마트폰 기종
+      <div class="tooltip-container">
+        <div class="tooltip-icon">?</div>
+        <div class="tooltip-box">
+          {{ nickname }}님이 입력한 취미와 성향을 바탕으로 추천한 스마트폰 기종이에요!
+        </div>
+      </div>
+    </h3>
+
+    <div class="recommend-phone-list">
+      {% for item in recommendation_list %}
+        <div class="recommend-phone-item">
+          <div class="recommend-phone-title">
+            {{ forloop.counter }}. {{ item.phone_name }}
+          </div>
+          <div class="recommend-phone-desc">
+            {{ item.reason }}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div> 
+
+  <!-- 추가 리포트 섹션 -->
+  <div class="recommendation-section recommend-section-2">
+
+    <!-- 실구매자 리뷰 -->
+    <h3 class="keyword-title with-subtitle-inline">
+      실 구매자의 의견은 어떨까?
+      <div class="tooltip-container">
+        <div class="tooltip-icon">?</div>
+        <div class="tooltip-box">
+          삼성과 애플 기종의 실구매자 평균 평점을 확인해보세요!
+        </div>
+      </div>
+      <span class="sub-title-inline">
+        &nbsp;| &nbsp;삼성 vs 애플, 실 구매자는 어떤 점을 높게 평가했을까요?
+      </span>
+    </h3>
+    
+    <div class="brand-wordcloud-container">
+
+      <!-- 삼성 -->
+      <div class="brand-wordcloud-box samsung-box">
+  
+        <!-- 왼쪽 박스 -->
+        <div class="brand-box samsung">
+          <h4>삼성</h4>
+          <p class="score">평균 평점</p>
+          <p class="score-value">{{ samsung_score }} / 100점</p>
+        </div>
+      
+        <!-- 오른쪽 박스 -->
+        <div class="wordcloud-container">
+          <div class="toggle-container">
+            <button onclick="updateIframe('samsung', '1', event)" class="toggle-btn active">만족</button>
+            <button onclick="updateIframe('samsung', '0', event)" class="toggle-btn">불만족</button>
+          </div>
+      
+          <div class="iframe-wrapper">
+            <iframe
+              id="wordcloud-iframe-samsung"
+              src="/django_plotly_dash/app/DanawaWordCloudSamsung/?sentiment_label=1"
+              frameborder="0"
+              scrolling="no"
+              width="400"
+              height="300">
+            </iframe>
+          </div>
+        </div>
+      
+      </div>
+    
+      <!-- 애플 -->
+      <div class="brand-wordcloud-box apple-box">
+  
+        <!-- 왼쪽 박스 -->
+        <div class="brand-box apple">
+          <h4>애플</h4>
+          <p class="score">평균 평점</p>
+          <p class="score-value">{{ apple_score }} / 100점</p>
+        </div>
+      
+        <!-- 오른쪽 박스 -->
+        <div class="wordcloud-container">
+          <div class="toggle-container">
+            <button onclick="updateIframe('apple', '1', event)" class="toggle-btn active">만족</button>
+            <button onclick="updateIframe('apple', '0', event)" class="toggle-btn">불만족</button>
+          </div>
+      
+          <div class="iframe-wrapper">
+            <iframe
+              id="wordcloud-iframe-apple"
+              src="/django_plotly_dash/app/DanawaWordCloudApple/?sentiment_label=1"
+              frameborder="0"
+              scrolling="no"
+              width="400"
+              height="300">
+            </iframe>
+          </div>
+        </div>
+      
+      </div>
+    
+    </div>
+    
+    </div>
+
+  </div> 
+
+  <!-- 이전/다음 버튼 -->
+  <div class="next-button-container">
+    <form method="get" action="{% url 'analysis-step3' %}">
+      <button type="submit" class="btn">◀ 이전</button>
+    </form>
+
+    <form method="get" action="{% url 'main' %}">
+      <button type="submit" class="btn">메인으로 돌아가기</button>
+    </form>
+  </div>
+
+</div> <!-- container 끝 -->
+{% endblock %}
+
+{% block extra_script %}
+<script>
+function updateIframe(brand, sentiment, event) {
+  const iframeId = `wordcloud-iframe-${brand}`;
+  const iframe = document.getElementById(iframeId);
+
+  iframe.src = `/django_plotly_dash/app/DanawaWordCloud${brand.charAt(0).toUpperCase() + brand.slice(1)}/?sentiment_label=${sentiment}`;
+
+  const container = iframe.closest('.brand-wordcloud-box');
+  const buttons = container.querySelectorAll('.toggle-btn');
+
+  buttons.forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+</script>
+{% endblock %}
+
+{% block extra_style %}
+<style>
+
+.container {
+  align-items: stretch;
+}
+
+.section-description {
+  padding-left: 100px;
+  box-sizing: border-box;
+}
+
+.next-button-container {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  flex-wrap: wrap;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.section-description {
+  margin-top: 40px;
+  text-align: left;
+  margin-bottom: 30px;
+}
+
+.section-description h2 {
+  font-size: 26px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.section-description h2 .sub-title {
+  font-size: 16px;
+  color: #555;
+}
+
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.tooltip-icon {
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  color: #888888;
+  border: 1px solid #cccccc;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.tooltip-box {
+  display: none;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  min-width: 280px;
+  max-width: 350px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.tooltip-container:hover .tooltip-box {
+  display: block;
+}
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;                          /* 박스 아래쪽에 붙임 */
+  left: 50%;
+  transform: translateX(-50%);
+  
+  border-width: 10px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent; 
+}
+
+.graph-container {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 20px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  justify-content: center;
+  position: relative;
+  align-items: flex-start;  
+}
+
+.graph-box {
+  flex: none;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  box-sizing: border-box; 
+  height: 200px;
+}
+
+.recommendation-box {
+  background-color: #f9f9f9;
+  border-radius: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  font-size: 16px;
+  color: #333;
+  white-space: pre-wrap;
+  padding: 10px 20px;
+  height: 100%;
+}
+
+.brand-satisfaction-container {
+  display: flex;
+  /* justify-content: center; */
+  flex-direction: column; 
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* 왼쪽 브랜드 정보 박스 */
+.brand-box {
+  flex: 0 0 180px; /* 고정 너비 */
+  display: flex;
+  height: 350px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 삼성용 박스 */
+.brand-box.samsung {
+  background-color: #e3f2fd; /* 연파랑 */
+  /* border: 2px solid #90caf9; */
+}
+
+/* 애플용 박스 */
+.brand-box.apple {
+  background-color: #fce4ec; /* 연분홍 */
+  /* border: 2px solid #f48fb1; */
+}
+
+.samsung-box {
+  background-color: #e3f2fd;
+  /* border: 2px solid #90caf9; */
+}
+
+.apple-box {
+  background-color: #fce4ec;
+  /* border: 2px solid #f48fb1; */
+}
+
+.brand-box h4 {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.brand-box .score {
+  font-size: 16px;
+  color: #777;
+  margin-bottom: 5px;
+}
+
+.brand-box .score-value {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.sub-description {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+.recommendation-section {
+  /* margin-top: 40px; */
+  padding-bottom: 0px;  
+  display: block;
+  width: 100%;
+}
+
+.recommend-section-1 {
+  margin-top: 0px;
+}
+
+.recommend-section-2 {
+  margin-top: 40px;
+}
+
+.recommendation-section h3.keyword-title,
+.recommendation-section .sub-description,
+.recommendation-section .graph-container,
+.recommendation-section .brand-satisfaction-container {
+  padding-left: 100px;
+  box-sizing: border-box;
+}
+
+.recommendation-box pre {
+  font-family: inherit;  /* 기본 글꼴 상속! */
+  font-size: 16px;    
+  color: #333;          
+  white-space: pre-wrap;  
+  line-height: 3;  
+  padding: 10px 20px;
+}
+
+.brand-satisfaction-container {
+  flex: none;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.brand-wordcloud-container {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 40px;
+  padding-left: 100px;
+  padding-right: 40px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1500px;
+}
+
+.brand-wordcloud-box {
+  display: flex;
+  flex: 1;
+  height: 450px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 700px;
+  margin: 20px auto;
+  border-radius: 30px;
+  padding: 20px;
+  box-sizing: border-box;
+
+}
+
+.toggle-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.wordcloud-container {
+  flex: 1;
+  background-color: #ffffff;
+  border-radius: 20px;
+  margin-left: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+}
+
+.wordcloud-box {
+  max-width: 600px;   /* 적절한 최대 크기 설정 */
+  max-height: 600px;  /* 높이 제한 */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.responsive-iframe-container {
+  width: 100%;
+  height: auto;
+}
+
+.iframe-wrapper {
+  width: 100%;
+  height: auto;           /* 추천! 높이 자동으로 */
+  min-height: 500px; 
+  position: relative; 
+  /* overflow: hidden; */
+  margin-top: 50px; /* 토글과 워드클라우드 간격 */
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  z-index: 1;
+  position: relative;
+  object-fit: contain;
+}
+
+.responsive-iframe-container iframe {
+  width: 500px;
+  height: 100px;
+  border: none;
+}
+
+.recommend-phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0;
+  padding-left: 100px;
+  margin-top: 45px;
+}
+
+.recommend-phone-item {
+  display: flex;
+  align-items: center;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+  border-left: 8px solid #c4c4c4;
+}
+
+.recommend-phone-title {
+  font-weight: bold;
+  color: #333;
+  min-width: 240px;
+  margin-right: 20px;
+  font-size: 18px;
+}
+
+.recommend-phone-desc {
+  color: #555;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.keyword-title.with-subtitle-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sub-title-inline {
+  font-size: 14px;
+  color: #777;
+}
+
+@media screen and (max-width: 768px) {
+  .graph-container {
+    flex-direction: column;
+  }
+
+  .graph-box {
+    min-width: 100%;
+  }
+
+  .brand-satisfaction-container {
+    flex-direction: column;
+  }
+
+  .next-button-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+</style>
+{% endblock %}

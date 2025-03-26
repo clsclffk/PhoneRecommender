@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}서비스 사용 설명서{% endblock %}
+
+{% block content %}
+<div class="container">
+  
+  <div class="center-container">
+
+    <!-- 페이지 제목 -->
+    <h1 class="page-title">서비스 사용 설명서</h1>
+
+    <!-- 주요 컨텐츠 박스 -->
+    <div class="content-box">
+
+      <!-- Step 1 -->
+      <div class="guide-step">
+        <h2 class="step-title">Step 1  |  이용자 정보 입력하기</h2>
+        <p class="step-description">
+          가장 먼저, 이용자님의 정보를 입력해주세요.<br>
+          닉네임, 성별, 연령대를 입력해주시면 이용자님에게 딱 맞는 정보를 제공해드려요.
+        </p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="guide-step">
+        <h2 class="step-title">Step 2  |  취미 영역 선택하기</h2>
+        <p class="step-description">
+          이용자님이 평소에 즐기는 취미를 선택해주세요.<br>
+          평소 즐기는 취미가 없는 경우, 같은 성별·연령대의 다른 이용자님이 즐기는 취미를 추천해드려요!
+        </p>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="guide-step">
+        <h2 class="step-title">Step 3  |  스마트폰 기능 키워드 선택하기</h2>
+        <p class="step-description">
+          이용자님이 선택한 취미와 관련 있는 스마트폰의 기능 키워드 5개 중<br>
+          자세히 알아보고 싶은 키워드를 선택해주세요.
+        </p>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="guide-step">
+        <h2 class="step-title">Step 4  |  나만의 분석 리포트 확인하기</h2>
+        <p class="step-description">
+          나만을 위한 분석 리포트를 살펴봐요!<br>
+          분석 리포트에서는 내가 선택한 기능에 대한 SNS 이용자들의 의견을 알아보고, 나에게 딱 맞는 최신 스마트폰 기종을 추천받아요.
+        </p>
+      </div>
+
+      <!-- 다음 단계 버튼 -->
+      <div class="next-button-container">
+        <a href="{% url 'user-info' %}" class="btn">
+          <span class="text">다음</span>
+          <span class="arrow">▶</span>
+        </a>
+      </div>
+
+    </div> <!-- content-box 끝 -->
+
+  </div> <!-- center-container 끝 -->
+
+</div> <!-- container 끝 -->
+{% endblock %}
+{% block extra_style %}
+<style>
+
+/* 각 단계 박스 */
+.guide-step {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 9px;
+  margin-bottom: 20px;
+  border: 2px solid #eee;
+  max-width: none; 
+  text-align: left;
+  width: 90%;  
+  padding-left: 40px;  /* 왼쪽 패딩 추가 */
+}
+
+/* 단계 제목 */
+.step-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 17px;
+}
+
+/* 설명 글 */
+.step-description {
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: #333;
+  line-height: 1.2;
+}
+
+/* 다음 버튼 컨테이너 */
+.next-button-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.page-title {
+  margin-bottom: 30px;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.content-box {
+  padding: 40px;
+  height: 85vh; /* 화면 크기에 맞추기 */
+  overflow-y: hidden; /* 수평 스크롤 없애기 */
+}
+
+html, body {
+  height: 100%; /* 페이지 높이를 화면에 맞추기 */
+  margin: 0; /* 기본 마진 제거 */
+  overflow: hidden; /* 세로 스크롤 방지 */
+}
+</style>
+{% endblock %}

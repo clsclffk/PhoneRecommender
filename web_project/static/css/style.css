@@ -1,0 +1,206 @@
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  word-break: keep-all; /* 단어가 끊어지지 않도록 설정 */
+}
+
+svg text {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  font-weight: 900 !important; 
+}
+
+* {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important; /* 모든 요소에 폰트 적용 */
+}
+
+/* 버튼 공통 스타일 */
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px 40px;
+  font-size: 1.2rem;
+  border: 2px solid #333333;
+  border-radius: 30px;
+  background-color: #ffffff;
+  color: #333333;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* hover 효과 */
+.btn:hover {
+  background-color: #333333;
+  color: #ffffff;
+}
+
+/* 버튼 active 스타일 (성별 버튼에서 사용) */
+.btn.active {
+  background-color: #333;
+  color: #fff;
+}
+
+/* 화살표 스타일 (공통으로 넣기) */
+.btn .arrow {
+  margin-left: 10px; /* 텍스트랑 간격 */
+  font-size: 1.2rem;
+}
+
+/* 제목 스타일 */
+.page-title {
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 40px;
+  color: #333;
+  text-align: left;
+  align-self: flex-start; 
+  margin-left: 50px;
+}
+
+/* 전체 레이아웃 컨테이너 */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  padding: 50px 20px;
+  box-sizing: border-box;
+  align-items: center; 
+  justify-content: flex-start; /* 세로축 시작점을 상단으로 고정 */
+}
+
+/* 콘텐츠 영역 */
+.center-container {
+  display: flex;
+  justify-content: flex-start;  /* 자식들 위에서 아래로 */
+  align-items: flex-start;  /* 왼쪽 정렬 */
+  flex-direction: column;
+  max-width: 1000px;
+  width: 100%;  
+  margin: 0 auto; 
+  box-sizing: border-box;
+}
+
+/* content-box 기본 스타일 */
+.content-box {
+  width: 100%;
+  max-width: 1000px;
+  background-color: #fff;
+  padding: 60px;
+  border-radius: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.additional-box {
+  background-color: #fff;
+  box-sizing: border-box;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  text-align: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/*      리포트 전용 레이아웃     */
+
+
+/* 입력 필드와 버튼을 나란히 정렬하는 컨테이너 */
+.input-area {
+  display: flex;
+  justify-content: flex-start;  /* 버튼이랑 인풋이 옆으로 */
+  align-items: center;         /* 높이 맞추기 */
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  gap: 8px;                     /* 인풋과 버튼 간격 */
+}
+
+/* 실제 입력 필드 */
+.input-field {
+  flex: 2;
+  height: 60px;
+  padding: 0 20px;
+  font-size: 16px;
+  border: 2px solid #333;
+  border-radius: 30px;
+  box-sizing: border-box;
+}
+
+/* 드롭다운 */
+.select-field {
+  width: 100%;
+  max-width: 300px;
+  height: 60px;
+
+  padding: 0 20px;
+  font-size: 16px;
+  color: #333;
+
+  border: 2px solid #333;
+  border-radius: 30px;
+
+  background-color: #fff;
+  box-sizing: border-box;
+
+  text-align: center; /* 가운데 정렬만 유지하고 싶으면 */
+
+  /* 기본 드롭다운 화살표를 없애고 직접 추가 */
+  appearance: none;         /* 표준 */
+  -webkit-appearance: none; /* 사파리 */
+  -moz-appearance: none;    /* 파이어폭스 */
+  
+  /* 가짜 화살표 넣기 (▼) */
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 30px;
+  
+  /* 기본 화살표가 없는 경우를 대비해 오른쪽 패딩 추가 */
+  padding-right: 40px;
+}
+
+/* 기본 토글 버튼 스타일 */
+.toggle-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500; /* 글씨 두께 */
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* 활성화 상태 (선택된 토글) */
+.toggle-btn.active {
+  background-color: #d9eaff;
+  border: 1px solid transparent;
+  color: #333;
+  font-weight: bold;
+}
+
+/* 비활성 상태에서 hover 효과 */
+.toggle-btn:not(.active):hover {
+  background-color: #f5f5f5;
+}
+
+
+/* Font Awesome 아이콘에는 Pretendard 덮어씌우지 않도록 예외 처리 */
+.fa,
+.fas,
+.far,
+.fal,
+.fab,
+.fa-solid {
+  font-family: "Font Awesome 6 Free" !important;
+  font-weight: 900 !important;
+}
+
+
+
