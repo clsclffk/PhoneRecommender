@@ -8,7 +8,10 @@
 - 🧼 데이터 전처리 및 감성 분석 (Spark, Pandas)
 - 🧠 LLM 기반 RAG 추천 시스템 (Chroma + OpenAI)
 - 💡 Django 기반 사용자 맞춤형 추천 결과 제공
-- 📈 분석 시각화 (Dash, Plotly)
+- 📈 분석 시각화 (django-plotly-dash)
+
+## 🖼 프로젝트 아키텍처
+![image](./images/architecture.png)
 
 ## 🗂 프로젝트 파일 구조
 
@@ -42,12 +45,8 @@ PhoneRecommender/
 │
 ├── images/                        # 아키텍처 및 시연 스크린샷
 │   └── architecture.png
-│
+│   └── web_screenshots
 ├── .gitignore                     # 업로드 제외 파일 목록
 └── README.md                      # 프로젝트 개요 및 설명
 
-
 ```
-
-## 🖼 프로젝트 아키텍처
-![image](./images/architecture.png)
