@@ -12,6 +12,7 @@
 
 ## 🖼 프로젝트 아키텍처
 ![image](./images/architecture.png)
+![image](./images/web_architecture.png)
 
 ## 🗂 프로젝트 파일 구조
 
