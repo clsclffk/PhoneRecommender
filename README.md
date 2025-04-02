@@ -1,4 +1,10 @@
-# 프로젝트 개요
+# 📱 스마트폰 리뷰 기반 맞춤형 브랜드 추천 시스템 프로젝트
+
+사용자 리뷰와 유튜브 영상 데이터를 수집하고 분석하여, 사용자의 취향에 맞는 스마트폰을 추천해주는 웹 서비스
+
+- 💬 리뷰 데이터에서 핵심 키워드 및 감성 분석
+- 🤖 LLM 기반의 RAG 기술을 활용한 자연스러운 추천 문구 생성
+- 🛠 ETL부터 시각화까지 자동화된 데이터 처리 파이프라인 구축
 
 ## 🔧 서비스 기능
 
@@ -9,6 +15,19 @@
 - 🧠 LLM 기반 RAG 추천 시스템 (Chroma + OpenAI)
 - 💡 Django 기반 사용자 맞춤형 추천 결과 제공
 - 📈 분석 시각화 (django-plotly-dash)
+
+## 🛠 기술 스택
+
+| 목적 | 사용 기술 |
+|------|-----------|
+| 워크플로우 자동화 | Apache Airflow |
+| 데이터 수집 | YouTube API, Selenium |
+| 데이터 처리 및 분석 | PySpark, Pandas |
+| 저장소 | HDFS, MySQL |
+| LLM 활용 | OpenAI API, Chroma Vector DB |
+| 웹 서비스 | Django |
+| 시각화 | Django-Plotly-Dash |
+| 기타 | Git, Jupyter Notebook, AWS |
 
 ## 🖼 프로젝트 아키텍처
 ![image](./images/architecture.png)
