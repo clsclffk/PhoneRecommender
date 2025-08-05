@@ -76,7 +76,7 @@ AWS EC2 환경에서 HDFS와 MySQL을 연동하고, Apache Airflow를 통해 데
 - Celery + Redis 기반 비동기 큐를 도입해 요청과 처리를 분리
 
 
-## 🗂 프로젝트 파일 구조
+## 프로젝트 파일 구조
 
 ```bash
 PhoneRecommender/
