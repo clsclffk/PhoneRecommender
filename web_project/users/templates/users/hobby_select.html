@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}취미 선택{% endblock %}
+
+{% block extra_style %}
+<style>
+
+.content-box, .additional-box {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.content-box {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 30px;
+}
+
+/* 설명 텍스트 */
+.instruction-box {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 50px;
+  margin-left: 50px;
+}
+
+.instruction-box p {
+  color: #333;
+}
+
+.description-text {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+/* 버튼 영역 */
+.btn {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.hobby-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 50px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.hobby-btn {
+  width: 100%;
+  height: 60px;
+}
+
+.next-btn {
+  height: 60px;
+  font-weight: 500;
+}
+
+.next-button-wrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 50px;
+}
+
+/* 토글 버튼 */
+.other-hobby-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 30px;
+  cursor: pointer;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.other-hobby-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-right: 680px;
+}
+
+.toggle-icon {
+  font-size: 22px;
+  transition: transform 0.3s ease;
+  margin-left: 10px;
+}
+
+.additional-box {
+  width: 100%;
+  background-color: #f5f5f5;
+  /* padding: 40px 50px; */
+  border-radius: 20px;
+  margin-top: 40px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* 토글로 열리는 콘텐츠 */
+.other-hobby-section {
+  display: none;
+  width: 100%;
+  padding: 20px 30px;
+  border-radius: 20px;
+  text-align: center;
+}
+
+.other-hobby-description {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #555;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 10px;
+  margin-top: 0px;
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="center-container">
+
+    <!-- 페이지 제목 -->
+    <h1 class="page-title">취미 영역 입력하기</h1>
+
+    <!-- 주요 콘텐츠 박스 -->
+    <div class="content-box">
+
+      <!-- 설명 박스 -->
+      <div class="instruction-box">
+        <p class="section-title">취미 영역 선택</p>
+        <p class="description-text">
+          아래 항목에서 이용자님의 취미를 선택하고 ‘다음’ 버튼을 눌러주세요.<br>
+          만약 고르고 싶은 취미가 없는 경우, 하단 ‘다른 취미가 궁금해요’를 눌러주세요.
+        </p>
+      </div>
+
+      <!-- 취미 선택 폼 -->
+      <form method="post" action="{% url 'hobby-select' %}">
+        {% csrf_token %}
+
+        <div class="hobby-buttons">
+          <button type="button" onclick="selectHobby('사진 촬영')" class="btn hobby-btn" data-hobby="사진 촬영">사진 촬영</button>
+          <button type="button" onclick="selectHobby('SNS')" class="btn hobby-btn" data-hobby="SNS">SNS</button>
+          <button type="button" onclick="selectHobby('게임')" class="btn hobby-btn" data-hobby="게임">게임</button>
+          <button type="button" onclick="selectHobby('영상 보기')" class="btn hobby-btn" data-hobby="영상 보기">영상 보기</button>
+          <button type="button" onclick="selectHobby('그림')" class="btn hobby-btn" data-hobby="그림">그림</button>
+          <button type="button" onclick="selectHobby('여행')" class="btn hobby-btn" data-hobby="여행">여행</button>
+          <button type="button" onclick="selectHobby('음악 감상')" class="btn hobby-btn" data-hobby="음악 감상">음악 감상</button>
+          <button type="button" onclick="selectHobby('독서')" class="btn hobby-btn" data-hobby="독서">독서</button>
+          <button type="button" onclick="selectHobby('운동')" class="btn hobby-btn" data-hobby="운동">운동</button>
+
+        </div>
+
+        <!-- 선택한 값 전달 -->
+        <input type="hidden" name="selected_hobby" id="selected_hobby">
+
+        <div class="next-button-wrap">
+          <button type="submit" name="action_type" value="next" class="btn next-btn">다음 ▶</button>
+        </div>
+      </form>
+
+    </div> <!-- content-box 끝 -->
+
+    <!-- 추가 콘텐츠 박스 (다른 취미 선택 토글) -->
+    <div class="additional-box">
+
+      <div class="other-hobby-toggle" onclick="toggleOtherHobby()">
+        <p class="other-hobby-title">다른 취미가 궁금해요 <span class="emoji">😟</span></p>
+        <span class="toggle-icon" id="toggle-icon">▼</span>
+      </div>
+
+      <div class="other-hobby-section" id="toggle-content">
+        <p class="other-hobby-description">
+          위 목록에 내 취미가 빠져 있는 이용자님, 또는 평소 즐기는 취미가 없는 이용자님을 위해 준비했어요.<br>
+          다음 페이지로 이동해 나와 비슷한 이용자가 즐기는 취미를 확인하거나 색다른 나만의 취미를 입력해보세요!
+        </p>
+
+        <form method="post" action="{% url 'hobby-select' %}">
+          {% csrf_token %}
+          <button type="submit" name="action_type" value="recommend" class="btn other-hobby-btn">
+            다른 취미 살펴보기 🔍
+          </button>
+        </form>
+
+      </div>
+
+    </div> <!-- additional-box 끝 -->
+
+  </div> <!-- center-container 끝 -->
+
+</div> <!-- container 끝 -->
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function selectHobby(hobby) {
+  const hiddenInput = document.getElementById('selected_hobby');
+  const button = event.target;
+
+  // 이모지를 정의하는 객체
+  const emojiMap = {
+    '사진 촬영': '📷',
+    'SNS': '📱',
+    '게임': '🎮',
+    '영상 보기': '🎬',
+    '그림': '🎨',
+    '여행': '✈️',
+    '음악 감상': '🎵',
+    '독서': '📚',
+    '운동': '🏋️‍♂️'
+  };
+
+  // 버튼이 이미 선택된 상태라면, 해제
+  if (button.classList.contains('active')) {
+    button.classList.remove('active'); // 선택 해제
+    hiddenInput.value = ''; // 선택된 취미값 초기화
+    button.textContent = hobby; // 원래 텍스트로 복원
+  } else {
+    // 버튼이 선택되지 않은 상태라면, 선택
+    const buttons = document.querySelectorAll('.hobby-btn');
+    buttons.forEach(btn => {
+      btn.classList.remove('active'); // 모든 버튼 선택 해제
+      // 선택되지 않은 버튼은 원래 텍스트로 복원
+      btn.textContent = btn.getAttribute('data-hobby'); 
+    }); 
+
+    button.classList.add('active'); // 선택된 버튼 표시
+    hiddenInput.value = hobby; // 선택한 취미값 저장
+    button.textContent = emojiMap[hobby] || hobby; // 이모지로 변경
+  }
+}
+
+function toggleOtherHobby() {
+  const content = document.getElementById('toggle-content');
+  const icon = document.getElementById('toggle-icon');
+
+  if (content.style.display === 'block') {
+    content.style.display = 'none';
+    icon.textContent = '▼';  // 토글 버튼 아이콘이 ▼로 변경
+  } else {
+    content.style.display = 'block';
+    icon.textContent = '▲';  // 토글 버튼 아이콘이 ▲로 변경
+  }
+}
+</script>
+{% endblock %}

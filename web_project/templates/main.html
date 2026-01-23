@@ -1,0 +1,367 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>한빛 - 나의 취미 생활</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+
+    <!-- fullPage.js 스타일 -->
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/3.1.2/fullpage.min.css" />
+
+    <!-- jQuery 라이브러리 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- fullPage.js 스크립트 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullPage.js/3.1.2/fullpage.min.js"></script>
+
+    <!-- AOS 스타일 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.css" />
+
+    <!-- AOS 스크립트 -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.1/dist/aos.js"></script>
+
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/webfonts/fa-solid-900.woff2" crossorigin="anonymous">
+
+
+
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .logo {
+            width: 500px;
+            height: auto;
+            margin-bottom: 40px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+            color: #333333;
+        }
+
+        .highlight {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #111111;
+            margin-bottom: 50px;
+        }
+
+        h2 {
+            font-size: 2.5rem; /* 글자 크기 키우기 */
+            font-weight: 900;  /* 두껍게 하기 */
+            color: #333;       /* 글자 색상 */
+            margin-bottom: 40px; /* 아래 여백 */
+        }
+
+        /* 프로젝트 소개와 팀원 소개 사이에 구분선 추가 */
+        .project-section {
+            border-bottom: 2px solid #ccc; /* 연한 회색 구분선 */
+            padding-bottom: 30px;  /* 구분선과 아래 콘텐츠 간의 여백 */
+            margin-bottom: 30px;   /* 상단과 구분선 간 여백 */
+            margin-top: -40px;      /* 구분선 위쪽 간격을 좀 더 넓게 설정 */
+            width: 80%;            /* 전체 너비의 80% */
+            margin-left: auto;     /* 중앙 정렬 */
+            margin-right: auto;    /* 중앙 정렬 */
+        }
+
+        /* 프로젝트 소개 제목 스타일 */
+        .project-section h2 {
+            font-size: 3rem;    
+            font-weight: 800;  
+            margin-bottom: 60px;
+        }
+
+        /* 프로젝트 소개 내용 (p) 스타일 */
+        .project-section p {
+            font-size: 1.1rem;    
+            font-weight: 200;   
+        }
+
+        /* fullPage.js 관련 스타일 */
+        .section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        .section p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        /* 팀원 소개 제목을 별도의 스타일링 */
+        .team-title h2 {
+            font-size: 2.5rem;  /* 제목 크기 설정 */
+            font-weight: 900;   /* 두껍게 설정 */
+            margin-top: 40px;   /* 위쪽 여백 */
+            margin-bottom: 30px; /* 아래쪽 여백 */
+            text-align: center; /* 가운데 정렬 */
+        }
+
+        /* 팀원 소개 섹션 스타일 */
+        .team-section {
+            display: flex;
+            justify-content: center; 
+            gap: 0px;  
+            flex-wrap: nowrap; 
+            padding-top: 20px; 
+            text-align: center; 
+        }
+
+        .team-section h2 {
+            margin-top: 40px;     /* 팀원 소개 제목과 내용 사이에 40px 간격 추가 */
+            margin-bottom: 60px;  /* 제목과 팀원 내용 사이에 간격 추가 */
+        }
+
+        /* 각 팀원 텍스트 카드 */
+        .team-member {
+            display: flex;
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            width: 20%; 
+            padding: 40px;
+            /* min-height: 150px; */
+            font-size: 1.2rem;
+            height: auto;
+            gap: 20px;  
+        }
+
+        /* 팀원 이름 스타일 */
+        .team-member-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 10px; 
+            text-align: center;
+        }
+
+        /* 팀원 역할 스타일 */
+        .team-member-role {
+            font-size: 1rem;
+            color: #555;
+            text-align: center;
+            margin: 0 10px; 
+        }
+
+        .button-section {
+            text-align: center; /* 버튼을 가운데 정렬 */
+            margin-top: 40px; /* 버튼과 다른 콘텐츠 사이의 여백 */
+        }
+
+     /* 기술 카드 레이아웃 */
+     .tech-cards {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-evenly; /* 카드 간격을 고르게 배치 */
+        margin-top: 15px;
+        width: 80%;
+    }
+
+    .tech-card {
+        border-radius: 10px;
+        padding: 20px;
+        width: calc(50% - 20px); /* 두 개씩 나열, 간격을 고려하여 50% - 간격 만큼 설정 */
+        margin: 10px; /* 카드 간격 */
+        text-align: center;
+        box-sizing: border-box;
+        font-size: 1.5rem;
+        font-weight: 500;
+    }
+
+    .tech-card h3 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .tech-card p {
+        font-size: 1rem;
+        color: #333;
+        font-weight: 200;
+    }
+
+    a.btn {
+        font-size: 1.2rem; 
+        font-weight: 500;
+    }
+
+    .button-text {
+    font-size: 1.5rem;     /* 문구의 글자 크기 */
+    font-weight: 200;      /* 문구의 글자 두께 */
+    color: #333;           /* 문구 색상 */
+    margin-bottom: 20px;   /* 문구와 버튼 사이의 여백 */
+}
+
+/* 작은 화면에서 1개의 카드로 나오도록 설정 */
+@media (max-width: 768px) {
+    .tech-card {
+        width: 100%; /* 화면이 작으면 한 줄에 1개씩 */
+        margin-bottom: 20px;
+    }
+}
+
+    .scroll-down-arrow {
+        position: absolute;
+        bottom: 20px; /* 화면 하단에 위치 */
+        left: 50%; /* 수평 중앙 위치 */
+        transform: translateX(-50%); /* 정확히 중앙으로 이동 */
+        font-size: 2rem; /* 아이콘 크기 */
+        color: #333; /* 아이콘 색상 */
+        cursor: pointer;
+        animation: bounce 1s infinite; /* 화살표 애니메이션 */
+    }
+
+    @keyframes bounce {
+        0%, 100% {
+            transform: translateY(0) translateX(-50%);
+        }
+        50% {
+            transform: translateY(10px) translateX(-50%);
+        }
+    }
+    </style>
+</head>
+<body>
+    <div id="fullpage">
+        <!-- 첫 번째 섹션 -->
+        <div class="section" id="section1" data-aos="fade-up">
+            <div class="container">
+                <!-- 캐릭터 이미지 -->
+                <img src="{% static 'img/character.png' %}" alt="한빛 캐릭터" class="logo">
+
+                <!-- 메인 문구 -->
+                <div class="title">당신의 취미에 딱 맞는<br>스마트폰 추천 서비스,</div>
+                <div class="highlight">PHOBBY</div>
+            </div>
+
+            <!-- 화살표 추가 -->
+            <div class="scroll-down-arrow" onclick="fullpage_api.moveTo(2)">
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <!-- 두 번째 섹션 -->
+        <div class="section">
+            <div class="project-section">
+                <h2>프로젝트 소개</h2>
+                <p>
+                    PHOBBY는 멀티캠퍼스의 데이터 엔지니어 부트캠프(하둡, 스파크) 2회차 과정<br>
+                    한빛 팀의 최종 프로젝트를 위해 제작된 서비스예요.<br>&nbsp;<br>
+                    PHOBBY는 나의 삶을 한층 풍요롭게 만드는 ‘취미생활’과<br>
+                    일상 생활에서 중요한 동반자인 ‘스마트폰’을 결합해<br>
+                    스마트폰 구매 시 이용자님에게 도움이 되는 정보를 제공하고,<br>
+                    이용자님에게 딱 맞는 스마트폰 추천 서비스를 제공하고자 노력했어요.<br>&nbsp;<br>
+                    PHOBBY를 통해 이용자님의 취미생활이<br>
+                    한층 더 즐거워질 수 있길 바라요!
+                </p>
+            </div>
+            <div class="team-title">
+                <h2>팀원 소개</h2> 
+            </div>
+            <div class="team-section">
+                <div class="team-member">
+                    <div class="team-member-name">김현지</div>
+                    <div class="team-member-role">팀장,<br>서비스 기획 및<br>데이터 분석</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-member-name">박시현</div>
+                    <div class="team-member-role">데이터 분석 및<br>산출물 관리<br>&nbsp;</div>
+                </div>
+                <div class="team-member">
+                    <div class="team-member-name">신지수</div>
+                    <div class="team-member-role">데이터 엔지니어링,<br>웹 개발<br>(프론트엔드, 백엔드)</div>
+                </div>
+            </div>
+            <!-- 화살표 추가 -->
+            <div class="scroll-down-arrow" onclick="fullpage_api.moveTo(3)">
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <!-- 세 번째 섹션 -->
+        <div class="section">
+            <div class="container">
+                <h2>진행 일정 및 활용 기술</h2>
+                <p>2025년 1월부터 2025년 3월까지<br>
+                    서비스 기획부터 데이터 수집, 전처리, 모델 개발,<br>
+                    데이터 분석 및 시각화, 웹 서비스 구현을 진행했어요.
+                </p>
+                <!-- 기술 목록을 카드 형식으로 나열 -->
+                <div class="tech-cards">
+                    <div class="tech-card">
+                        <h3>📄 데이터 수집</h3>
+                        <p>크롤링 및 API를 활용한 데이터 수집</p>
+                        <p>Airflow를 활용한 자동화</p>
+                    </div>
+                    <div class="tech-card">
+                        <h3>📄 데이터 분석 및 시각화</h3>
+                        <p>Pyspark를 활용한 처리</p>
+                        <p>Plotly를 활용한 데이터 시각화</p>
+                    </div>
+                    <div class="tech-card">
+                        <h3>📄 데이터 적재</h3>
+                        <p>Hadoop을 활용한 수집 데이터 적재</p>
+                        <p>MySQL을 활용한 전처리 데이터 및 분석 데이터 적재</p>
+                    </div>
+                    <div class="tech-card">
+                        <h3>📄 웹 서비스</h3>
+                        <p>Django를 활용한 웹 서비스</p>
+                    </div>
+                    <div class="tech-card">
+                        <h3>📄 LLM 활용</h3>
+                        <p>OpenAI의 API를 활용한 LLM 활용</p>
+                        <p>(사용 모델: GPT-4)</p>
+                    </div>
+                    <div class="tech-card">
+                        <h3>📄 RAG 활용</h3>
+                        <p>OpenAI의 API를 활용한 LLM 활용</p>
+                        <p>(사용 모델: GPT-4)</p>
+                    </div>
+                </div>
+
+                <div class="button-section">
+                    <div class="button-text">
+                        한빛 팀이 만든 PHOBBY,<br> 이제 살펴보러 갈까요?
+                    </div>
+                    <a href="{% url 'guide' %}" class="btn">서비스 시작하기</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // fullPage.js 초기화
+        new fullpage('#fullpage', {
+            autoScrolling: true, // 자동 스크롤
+            scrollHorizontally: true, // 수평 스크롤 활성화
+            navigation: true, // 네비게이션 버튼 추가
+            slidesNavigation: true, // 슬라이드 네비게이션
+            anchors: ['section1', 'section2', 'section3'], // 각 섹션에 대한 앵커 이름
+        });
+
+        // AOS 초기화
+        AOS.init();
+    </script>
+</body>
+</html>

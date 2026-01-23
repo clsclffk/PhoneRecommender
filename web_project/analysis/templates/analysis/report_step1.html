@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}나의 취미생활 분석 리포트 - 키워드 분석{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- 상단 유저 정보 헤더 -->
+  {% include "components/user_info_header.html" %}
+
+  <!-- 분석 설명 -->
+  <div class="section-description">
+    <h2>
+      <strong>삼성 vs 애플,</strong> 사람들의 반응은?
+      <span class="sub-title">&nbsp;|&nbsp; {{ nickname }}님의 취미 키워드와 관련된 사람들의 반응을 살펴볼까요?</span>
+    </h2>
+  </div>
+
+  <!-- 키워드 분석 섹션 -->
+  <div class="keyword-analysis-section">
+
+    <h3 class="keyword-title">
+      키워드 분석
+      <div class="tooltip-container">
+        <div class="tooltip-icon">?</div> <!-- 아이콘 통일 -->
+        <div class="tooltip-box">
+          키워드 분석은 이용자님이 선택한 기능 키워드를 포함한 SNS 데이터 중 해당 키워드가 차지하는 비율을 알려주는 분석 기법이에요.
+        </div>
+      </div>
+
+      <span class="sub-title">
+        &nbsp;|&nbsp; SNS 댓글에서 사람들은 내 취미 관련 스마트폰 기능에 대해 얼마나 많이 이야기했을까?
+        <!-- 툴팁 추가 -->
+        <div class="tooltip-container">
+          <div class="tooltip-icon">?</div>
+          <div class="tooltip-box">
+            키워드 분석 결과 그래프의 높은 값은 사람들이 해당 키워드를 많이 언급했다는 것, 그러니까 사람들이 해당 키워드에 관심이 많다는 것을 의미해요.
+          </div>
+        </div>
+      </span>
+    </h3>
+
+    <!-- 그래프 + 해석 반복 섹션 -->
+<div class="graph-section">
+
+  <!-- 1. 키워드별 언급 비율 + 해석 -->
+  <div class="graph-item">
+    <!-- 그래프 박스 -->
+    <div class="graph-box">
+      <h4>키워드별 언급 비율 살펴보기</h4>
+      <div class="responsive-iframe-container">
+        <iframe 
+          id="keyword-frequency-graph"
+          src="/django_plotly_dash/app/KeywordBarChart/?gender={{ gender }}&age_group={{ age_group }}&hobby={{ hobby }}&selected_keywords={{ selected_keywords|join:',' }}"
+          frameborder="0"
+          scrolling="no">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- 요약 해석 박스 -->
+    <div class="summary-box">
+      <div class="summary-text">
+        {{ summary_model1_1|linebreaks|safe }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 키워드 언급추이 + 해석 -->
+  <div class="graph-item">
+    <!-- 그래프 박스 -->
+    <div class="graph-box">
+      <div class="graph-box-header">
+        <h4 class="graph-title">키워드 언급 추이 살펴보기</h4>
+        <div class="brand-toggle-container">
+          <button id="trend-samsung-btn" class="toggle-btn active">삼성</button>
+          <button id="trend-apple-btn" class="toggle-btn">애플</button>
+        </div>
+      </div>
+
+      <div class="responsive-iframe-container">
+        <iframe 
+          id="keyword-trend-graph"
+          src="/django_plotly_dash/app/KeywordTrendChart/?gender={{ gender }}&age_group={{ age_group }}&hobby={{ hobby }}&brand=samsung&selected_keywords={{ selected_keywords|join:',' }}"
+          frameborder="0"
+          scrolling="no">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- 요약 해석 박스 -->
+    <div class="summary-box">
+      <div class="summary-text">
+        {{ summary_model1_2|linebreaks|safe }}
+      </div>
+    </div>
+  </div>
+
+</div> <!-- graph-section 끝 -->
+
+  </div> <!-- keyword-analysis-section 끝 -->
+
+  <!-- 이전/다음 버튼 -->
+  <div class="next-button-container">
+    <form method="get" action="{% url 'keyword-select' %}">
+      <button type="submit" class="btn">◀ 이전</button>
+    </form>
+  
+    <form method="get" action="{% url 'analysis-step2' %}">
+      <button type="submit" class="btn">다음 ▶</button>
+    </form>
+  </div>
+
+</div> <!-- container 끝 -->
+{% endblock %}
+{% block extra_script %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+
+// 버튼과 그래프 iframe 불러오기
+const trendSamsungBtn = document.getElementById("trend-samsung-btn");
+const trendAppleBtn = document.getElementById("trend-apple-btn");
+const trendIframe = document.getElementById("keyword-trend-graph");
+
+// 기본 URL (브랜드는 query로 변경됨)
+const trendBaseUrl = "/django_plotly_dash/app/KeywordTrendChart/?gender={{ gender }}&age_group={{ age_group }}&hobby={{ hobby }}&selected_keywords={{ selected_keywords|join:',' }}";
+
+// 삼성 버튼 클릭 시 이벤트
+trendSamsungBtn.addEventListener("click", function() {
+  // iframe src 변경
+  trendIframe.src = trendBaseUrl + "&brand=samsung";
+
+  // 버튼 스타일 토글
+  trendSamsungBtn.classList.add("active");
+  trendAppleBtn.classList.remove("active");
+});
+
+// 애플 버튼 클릭 시 이벤트
+trendAppleBtn.addEventListener("click", function() {
+  // iframe src 변경
+  trendIframe.src = trendBaseUrl + "&brand=apple";
+
+  // 버튼 스타일 토글
+  trendAppleBtn.classList.add("active");
+  trendSamsungBtn.classList.remove("active");
+});
+
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    // 폴링 요청 함수
+    function checkStatus() {
+        $.get('/analysis/report/step1/?status=check', function(data) {
+            if (data.ready) {
+                window.location.reload();  // 작업이 완료되면 페이지 새로 고침
+            } else {
+                setTimeout(checkStatus, 2000);  // 2초 후 다시 상태 확인
+            }
+        });
+    }
+
+    // 페이지 로드 시 상태 체크 시작
+    checkStatus();
+  });
+</script>
+{% endblock %}
+
+{% block extra_style %}
+<style>
+
+.container {
+  /* 기존 코드 */
+  align-items: flex-start; 
+}
+
+.section-description, .keyword-analysis-section {
+  padding-left: 100px;   /* 여백 원하는 만큼 */
+  box-sizing: border-box;
+}
+
+/* 이전/다음 버튼 */
+.next-button-container {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center; 
+  flex-wrap: wrap; /* 반응형에서 줄바꿈 가능 */
+  gap: 100px; 
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 설명 섹션 */
+.section-description {
+  margin-top: 20px; 
+  text-align: left;
+  margin-bottom: 0px;
+}
+
+.section-description h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #333;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;  /* 왼쪽 정렬 */
+  align-items: center;
+  gap: 10px;
+}
+
+.section-description h2 .sub-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #555;
+  margin-top: 0;         /* 위쪽 마진 제거 */
+  margin-bottom: 0;      /* 아래쪽 마진 제거 */
+  line-height: 1;  
+}
+
+.section-description p {
+  font-size: 15px;
+  color: #555;
+}
+
+/* 툴팁 전체 감싸는 컨테이너 */
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin-left: 8px; 
+}
+
+/* 물음표 아이콘 스타일 */
+.tooltip-icon {
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  color: #888888;
+  border: 1px solid #cccccc;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background-color 0.3s;
+}
+
+.tooltip-icon:hover {
+  background-color: #f5f5f5;
+}
+
+/* 툴팁 박스 스타일 */
+.tooltip-box {
+  display: none;              /* 처음엔 안 보임 */
+  position: absolute;         
+  top: -10px;                 /* 부모 요소 기준으로 위로 띄움 */
+  left: 50%;
+  transform: translate(-50%, -100%);  /* 가운데 정렬 + 위로 이동 */
+  min-width: 280px;
+  max-width: 350px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  z-index: 1000;
+}
+
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;                          /* 박스 아래쪽에 붙임 */
+  left: 50%;
+  transform: translateX(-50%);
+  
+  border-width: 10px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent; 
+}
+
+/* 방향별 화살표 스타일 */
+.tooltip-box.top::after {
+  top: 100%;
+  border-color: #fff transparent transparent transparent;
+}
+
+/* 호버 시 툴팁 박스 보이게 */
+.tooltip-container:hover .tooltip-box {
+  display: block;
+}
+
+/* 키워드 분석 타이틀 */
+.keyword-analysis-section h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+/* 서브 설명 */
+.sub-description {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+/* responsive iframe wrapper */
+.responsive-iframe-container {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; 
+  margin: 0 auto;
+}
+
+.responsive-iframe-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 그래프 박스 헤더 */
+.graph-box-header {
+  display: flex;
+  /* justify-content: space-between; */
+  align-items: center;
+  padding-top: 10px;
+
+  flex-direction: row; 
+  gap: 10px;              
+  padding-top: 10px;
+  position: relative;  
+  justify-content: flex-end; 
+}
+
+.graph-box h4 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+/* 그래프 타이틀 */
+.graph-title {
+  position: absolute; 
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+  flex-grow: 1;
+  width: auto; 
+  margin: 0 auto; /* 가운데 정렬 */
+  text-align: center;
+}
+
+/* 브랜드 토글 버튼 */
+.brand-toggle-container {
+  display: flex;
+  gap: 10px;
+  margin-right: 20px;
+  flex-direction: row; 
+}
+
+.toggle-btn {
+  display: inline-flex; 
+  width: auto;
+}
+
+/* 키워드 타이틀 */
+.keyword-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  position: relative;
+}
+
+.keyword-title .sub-title {
+  font-size: 14px;
+  color: #777;
+  margin-left: 10px;
+}
+
+div.keyword-analysis-section h3.keyword-title {
+  margin-bottom: 50px;
+}
+
+.graph-section {
+  display: flex;
+  flex-direction: column;
+  gap: 60px; /* 아이템 사이 간격 */
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.graph-item {
+  display: flex;
+  flex-direction: row;
+  gap: 100px;  /* 그래프와 요약 사이 간격 */
+  justify-content: flex-start;  
+  align-items: flex-start;
+}
+
+.graph-box {
+  flex: 1;
+  min-width: 0; 
+  width: 700px;   /* 그래프 너비 넓히기 */
+  min-height: 500px;
+}
+
+.summary-box {
+  width: 560px;
+  max-width: 560px;
+  flex: none;             
+}
+
+/* 말풍선 */
+.summary-text {
+  width: 560px;
+  max-width: 560px;
+  position: relative;
+  background: #d9eaff; 
+  color: #000000;
+  padding: 20px 40px;
+  font-size: 16px;
+  line-height: 1.6;
+  border-radius: 20px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.summary-text::after {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: -10px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-right: 10px solid #d9eaff;
+}
+
+
+@media screen and (max-width: 768px) {
+  .graph-item {
+    flex-direction: column;
+  }
+
+  .graph-box, .summary-box {
+    width: 100%;
+  }
+}
+
+</style>
+{% endblock %}

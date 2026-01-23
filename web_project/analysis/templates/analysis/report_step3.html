@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}나의 취미생활 분석 리포트 - 연관어 분석{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- 상단 유저 정보 헤더 -->
+  {% include "components/user_info_header.html" %}
+
+  <!-- 분석 설명 -->
+  <div class="section-description">
+    <h2>
+      <strong>삼성 vs 애플</strong>, 사람들의 반응은?
+      <span class="sub-title">&nbsp;|&nbsp; {{ nickname }}님의 취미 키워드와 관련된 연관어 반응을 살펴볼까요?</span>
+    </h2>
+  </div>
+
+  <!-- 연관어 분석 섹션 -->
+  <div class="related-word-section">
+    <h3 class="keyword-title">
+      연관어 분석
+      <div class="tooltip-container">
+        <div class="tooltip-icon">?</div>
+        <div class="tooltip-box">
+          연관어 분석은 이용자님이 선택한 취미 영역과 함께 자주 언급된 단어들이 무엇인지 보여주는 분석이에요.
+        </div>
+      </div>
+
+      <span class="sub-title">
+        &nbsp;|&nbsp; 사람들이 내 취미와 함께 언급한 스마트폰 기능 단어들은 무엇일까?
+        <div class="tooltip-container">
+          <div class="tooltip-icon">?</div>
+          <div class="tooltip-box">
+            연관어 분석 결과에서 진한 색으로 보이는 단어일수록 사람들이 많이 언급했다는 것을 의미해요.
+          </div>
+        </div>
+      </span>
+    </h3>
+
+    <!-- 그래프 영역 -->
+    <div class="graph-container">
+      <div class="graph-box">
+        <div class="graph-title-container">
+          <h4 class="graph-title">취미 영역 관련 연관어 자세히 알아보기</h4>
+          <div class="brand-toggle-container">
+            <button id="network-samsung-btn" class="toggle-btn active">삼성</button>
+            <button id="network-apple-btn" class="toggle-btn">애플</button>
+          </div>
+        </div>
+        <div class="responsive-iframe-container">
+          <iframe
+            id="network-graph-iframe"
+            src="/django_plotly_dash/app/KeywordNetworkGraph/?gender={{ gender }}&age_group={{ age_group }}&hobby={{ hobby }}&brand=samsung&selected_keywords={{ selected_keywords|join:',' }}"
+            frameborder="0"
+            scrolling="no">
+          </iframe>
+        </div>
+      </div>
+      <!-- 요약 설명 박스 -->
+      <div class="summary-box">
+        <div class="summary-text">
+          {{ summary_model3|linebreaks|safe }}
+        </div>
+      </div>
+  </div> 
+
+  <!-- 이전/다음 버튼 -->
+  <div class="next-button-container">
+    <form method="get" action="{% url 'analysis-step2' %}">
+      <button type="submit" class="btn">◀ 이전</button>
+    </form>
+
+    <form method="get" action="{% url 'analysis-step4' %}">
+      <button type="submit" class="btn">다음 ▶</button>
+    </form>
+  </div>
+
+</div> <!-- container 끝 -->
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const samsungBtn = document.getElementById("network-samsung-btn");
+    const appleBtn = document.getElementById("network-apple-btn");
+    const networkIframe = document.getElementById("network-graph-iframe");
+
+    const gender = "{{ gender }}";
+    const ageGroup = "{{ age_group }}";
+    const hobby = "{{ hobby }}";
+    const selectedKeywords = "{{ selected_keywords|join:',' }}";
+
+    const baseUrl = `/django_plotly_dash/app/KeywordNetworkGraph/?gender=${gender}&age_group=${ageGroup}&hobby=${hobby}&selected_keywords=${selectedKeywords}`;
+
+    samsungBtn.addEventListener("click", function() {
+      networkIframe.src = `${baseUrl}&brand=samsung`;
+      samsungBtn.classList.add("active");
+      appleBtn.classList.remove("active");
+    });
+
+    appleBtn.addEventListener("click", function() {
+      networkIframe.src = `${baseUrl}&brand=apple`;
+      appleBtn.classList.add("active");
+      samsungBtn.classList.remove("active");
+    });
+  });
+</script>
+{% endblock %}
+
+{% block extra_style %}
+<style>
+
+.container {
+  align-items: flex-start;
+}
+
+.section-description,
+.related-word-section h3.keyword-title {
+  padding-left: 100px;
+  box-sizing: border-box;
+}
+
+.next-button-container {
+  margin-top: 80px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 200px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.section-description {
+  margin-top: 40px;
+  text-align: left;
+  margin-bottom: 30px;
+}
+
+.section-description h2 {
+  font-size: 26px;
+  font-weight: bold;
+  color: #333;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.section-description h2 .sub-title {
+  font-size: 16px;
+  color: #555;
+}
+
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.tooltip-icon {
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  color: #888888;
+  border: 1px solid #cccccc;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.tooltip-box {
+  display: none;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  min-width: 280px;
+  max-width: 350px;
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.tooltip-container:hover .tooltip-box {
+  display: block;
+}
+
+.tooltip-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;                          /* 박스 아래쪽에 붙임 */
+  left: 50%;
+  transform: translateX(-50%);
+  
+  border-width: 10px;
+  border-style: solid;
+  border-color: #fff transparent transparent transparent; 
+}
+
+.graph-container {
+  display: flex;
+  gap: 40px;  /* 간격 조정 */
+  justify-content: space-between;
+  align-items: flex-start;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 80px;
+  padding-right: 100px;
+}
+
+/* 그래프 박스 */
+.graph-box {
+  flex: 7;
+  width: auto;       
+  max-width: none; 
+}
+
+.graph-title,
+.summary-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.graph-title {
+  margin-left: 120px;
+}
+
+.graph-title-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+  gap: 0px;
+}
+
+.summary-title-container {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  min-height: 60px;
+}
+
+.responsive-iframe-container {
+  /* width: 600px;     */
+  width: 100%;
+  height: 600px;  
+  margin: 0 auto; 
+  position: relative;
+  overflow: hidden;
+  max-width: 600px;
+}
+
+.responsive-iframe-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;     
+  height: 100%;
+  border: none;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.brand-toggle-container {
+  display: flex;
+  gap: 10px;
+  margin-left: 40px;
+}
+
+.toggle-btn {
+  display: inline-flex;
+  width: auto;
+}
+
+@media screen and (max-width: 768px) {
+  .graph-container {
+    flex-direction: column;
+    align-items: center;  
+  }
+
+  .graph-box {
+    min-width: 100%;
+  }
+
+  .next-button-container {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+@media screen and (min-width: 1247px) {
+  .graph-title {
+    margin-left: 160px;  /* 더 넓은 화면에서는 제목을 더 오른쪽으로 */
+  }
+
+  .brand-toggle-container {
+    margin-left: 60px;  /* 여백도 여유롭게 */
+  }
+
+  .summary-box {
+    top: 120px; /* 말풍선 위치도 여유 있게 */
+  }
+
+  /* 혹시 버튼들이 너무 작아 보이면 */
+  .toggle-btn {
+    font-size: 16px;
+    padding: 10px 16px;
+  }
+}
+
+
+.next-button-container {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  flex-wrap: wrap;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.next-button-container form:first-child {
+  flex: 0 0 auto;
+  margin-left: 280px;  
+}
+
+.next-button-container form:last-child {
+  flex: 0 0 auto;
+}
+
+.summary-box {
+  position: relative;
+  background-color: #D9EAFF;
+  color: #000000;
+  padding: 20px 40px;
+  max-width: 560px;
+  border-radius: 20px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+  display: inline-block;
+  width: 560px;
+  box-sizing: border-box;
+  height: auto;  
+  top: 100px;  /* 말풍선 높이 내리기 */ 
+}
+
+.summary-box::after {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: -20px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent #D9EAFF transparent transparent;
+}
+
+.summary-text {
+  line-height: 1.6;
+  color: #000000;
+  font-size: 16px;
+}
+
+</style>
+{% endblock %}

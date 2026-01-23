@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}다른 취미 살펴보기{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="center-container">
+
+    <!-- 페이지 제목 -->
+    <h1 class="page-title">다른 취미 살펴보기</h1>
+
+    <!-- 주요 콘텐츠 박스 -->
+    <div class="content-box">
+
+      <!-- 설명 박스 -->
+      <div class="description-box">
+        <p class="section-title">다른 사용자들이 선택한 취미 살펴보기</p>
+        <p class="description">
+          취미를 선택하기 어려운 이용자님을 위해, PHOBBY를 이용한 다른 사용자들이 가장 많이 선택한 취미를 알려드릴게요!
+        </p>
+      </div>
+
+      <!-- 차트 -->
+      <div class="hobby-rank-section">
+        <div class="chart-box">
+          <iframe
+            src="/django_plotly_dash/app/HobbyGraph/?gender=F&age_group=20s"
+            width="100%"
+            height="350px"
+            scrolling="no"
+            frameborder="0"
+            style="border: none; width: 100%;"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-downloads">
+          </iframe>
+        </div>
+      </div>
+
+    </div> <!-- content-box 끝 -->
+
+    <!-- 추천 취미 선택 영역 (content-box로 변경) -->
+    <div class="content-box">
+      <div class="recommend-hobby-choice">
+        <!-- 텍스트 왼쪽 정렬 -->
+        <div class="recommend-text">
+          <p class="section-title">💡 나와 비슷한 이용자가 가장 많이 선택한 취미는?</p>
+          <p>
+            이용자님이 입력해주신 데이터를 기반으로 이용자님과 비슷한 다른 사용자들이 가장 많이 입력한 취미를 추천해드릴게요!<br>
+            더 알아보고 싶은 취미가 있다면 아래 취미 영역 버튼을 누르고, '키워드 확인하기' 버튼을 선택해주세요.
+          </p>
+        </div>
+
+        <!-- 버튼 중앙 정렬 -->
+        <form method="post" action="{% url 'recommend-hobby' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action_type" value="next">
+          <input type="hidden" id="selected_hobby" name="selected_hobby" value="">
+
+          <div class="button-group">
+            {% for hobby in recommended_hobbies %}
+              <button type="button" class="btn recommend-btn" onclick="selectHobby(this, '{{ hobby }}')">{{ hobby }}</button>
+            {% endfor %}
+          </div>
+          <div class="submit-button">
+            <button type="submit" class="btn keyword-btn">키워드 확인하기</button>
+          </div>
+        </form>
+      </div>
+    </div> 
+
+    <!-- 추가 콘텐츠 박스 (나만의 취미 입력하기) -->
+    <div class="additional-box">
+      <!-- 토글 버튼 -->
+      <button id="toggle-button" class="btn toggle-btn" onclick="toggleOtherHobby()">
+        <span class="toggle-text">다른 취미를 입력할래요 ⌨</span> <!-- 왼쪽 텍스트 -->
+        <span id="toggle-icon">▼</span>  <!-- 오른쪽 아이콘 -->
+      </button>
+    
+      <!-- 숨겨진 콘텐츠 -->
+      <div id="additional-content" style="display: none;"> <!-- 초기에는 숨김 -->
+        <p class="description">
+          나만의 취미를 입력하고 싶은 이용자님을 위해 준비했어요! 아래 입력란에 이용자님의 취미를 작성해주세요.<br>
+          <strong>TIP 💡</strong> 단어는 짧고 간결할수록 분석 레포트가 더 정확해진답니다! (예. '다이어리에 기록하기'보다 '기록'이 더 좋아요!)
+        </p>
+    
+        <form method="post" action="{% url 'recommend-hobby' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action_type" value="next">
+    
+          <div class="input-area">
+            <input type="text" name="custom_hobby" placeholder="취미를 입력해주세요" class="input-field" required />
+            <button type="submit" class="btn keyword-btn">키워드 확인하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div> 
+
+</div> 
+{% endblock %}
+
+{% block extra_style %}
+
+<style>
+.content-box {
+  padding: 30px 60px 30px 60px;
+  margin-top: 30px;
+  display: flex;              
+  justify-content: center;    
+  align-items: center;        
+  text-align: center;          
+}
+
+/* 추가 콘텐츠 박스 */
+.additional-box {
+  width: 100%;
+  background-color: #f5f5f5;
+  padding: 30px 50px;
+  border-radius: 20px;
+  margin-top: 40px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.additional-box .description {
+  margin-top: 20px;  
+}
+
+/* 설명 박스 */
+.description-box {
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 30px 0px 30px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.description {
+  margin: 0; 
+  color: #333;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+/* 차트 영역 */
+.hobby-rank-section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1000px;
+  height: auto;
+  min-height: unset;
+  padding: 0;
+  margin-top: -30px; /*그래프 위쪽 마진! */
+}
+
+.chart-box {
+  width: 100%;
+  height: auto;
+}
+
+.chart-box iframe {
+  width: 100%;
+  height: 350px; 
+  display: block;
+}
+
+/* 추천 취미 선택 */
+.recommend-hobby-choice {
+  width: 100%;
+  max-width: 1000px; 
+  padding: 30px;
+  text-align: left; 
+  padding: 30px;
+  border-radius: 20px;
+}
+
+/* 텍스트만 왼쪽 정렬 */
+.recommend-text p {
+  margin: 0 0 12px 0;
+  padding-left: 0;
+  text-align: left;
+}
+
+/* 버튼은 중앙 정렬 */
+.button-group {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  margin-top: 40px;
+}
+
+.recommend-hobby-choice p {
+  text-align: left; 
+  width: 100%; 
+  padding-left: 0; 
+  margin: 0 0 10px 0;
+}
+
+.keyword-btn, .recommend-btn {
+  display: inline-block;
+  margin: 0 auto; 
+}
+
+.recommend-btn {
+  padding: 12px 25px;
+  font-size: 16px;
+  width: 200px;
+}
+
+.recommend-btn.selected {
+  background-color: #333;
+  color: #fff;
+}
+
+.keyword-btn {
+  margin-top: 0;
+  font-weight: bold;
+}
+
+.submit-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 50px; 
+}
+
+/* 토글 버튼 */
+#toggle-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: transparent;  
+  padding: 22px 20px;
+  border: 1px solid #ddd;       
+  color: #333;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  max-width: 1000px;
+  transition: background-color 0.3s ease;
+  border: none
+}
+
+/* 텍스트와 아이콘 사이 간격을 조정 */
+#toggle-button .toggle-text {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+#toggle-button .toggle-icon {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+/* 활성화 상태 (선택된 토글) */
+#toggle-button.active {
+  background-color: #d9eaff;
+  border: 1px solid transparent;
+  color: #333;
+  font-weight: bold;
+}
+
+/* 비활성 상태에서 hover 효과 */
+#toggle-button:not(.active):hover {
+  background-color: #f5f5f5;
+}
+
+.toggle-btn {
+  border: none;
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.toggle-icon {
+  font-size: 22px;
+  transition: transform 0.3s ease;
+  margin-left: 10px;
+}
+
+</style>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  function selectHobby(button, hobby) {
+    const hiddenInput = document.getElementById('selected_hobby');
+
+    // 만약 이미 선택된 버튼이 클릭되면 선택 해제
+    if (button.classList.contains('selected')) {
+        button.classList.remove('selected'); // 'selected' 클래스 제거
+        hiddenInput.value = ''; // 선택된 취미값 초기화
+    } else {
+        // 새로 선택된 버튼에 'selected' 클래스 추가
+        const buttons = document.querySelectorAll('.recommend-btn');
+        buttons.forEach(btn => btn.classList.remove('selected')); // 모든 버튼에서 'selected' 클래스 제거
+        button.classList.add('selected'); // 클릭된 버튼에 'selected' 클래스 추가
+        hiddenInput.value = hobby; // 취미값 설정
+    }
+}
+  function toggleOtherHobby() {
+      const content = document.getElementById('additional-content');
+      const icon = document.getElementById('toggle-icon');
+
+      if (content.style.display === 'block') {
+        content.style.display = 'none';  // 숨기기
+        icon.textContent = '▼';          // 아이콘을 '▼'로 변경
+      } else {
+        content.style.display = 'block'; // 보여주기
+        icon.textContent = '▲';          // 아이콘을 '▲'로 변경
+      }
+  }
+</script>
+{% endblock %}

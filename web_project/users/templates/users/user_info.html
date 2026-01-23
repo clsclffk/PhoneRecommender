@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}사용자 정보 입력{% endblock %}
+
+{% block extra_style %}
+<style>
+
+/* 주요 콘텐츠 박스 스타일 */
+
+/* 좌우 분할 레이아웃 */
+.user-info-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  width: 100%;
+  background-color: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 1000px;
+}
+
+/* 왼쪽 설명 영역 */
+.left-section {
+  width: 50%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.left-section img {
+  width: 300px;
+  margin-bottom: 10px;
+}
+
+.left-section p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.5;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* 오른쪽 폼 영역 */
+.right-section {
+  width: 50%;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 40px;
+  box-sizing: border-box;
+}
+
+.right-section h2 {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  color: #333;
+}
+
+/* 폼 스타일 */
+.form-group {
+  margin-bottom: 40px;
+  width: 100%;
+}
+
+.input-field {
+  width: 100%; 
+}
+
+label {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.select-field {
+  width: 100%;          
+  max-width: 100%;
+}
+
+/* 성별 버튼 그룹 */
+.gender-btn-group {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  align-items: center; 
+  height: 60px;    
+}
+
+.gender-btn-group button {
+  flex: 1;
+  min-width: 150px;
+  border-radius: 30px;
+  height: 60px; 
+  padding: 0 16px;   
+}
+
+/* 에러 메세지 */
+.error {
+  color: red;
+  margin-top: 10px;
+}
+
+.btn {
+  margin-top: 0px;  
+  text-align: center;
+  display: block;         
+  margin-left: auto;      
+  margin-right: auto;  
+}
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="center-container">
+
+    <!-- 페이지 제목 -->
+    <h1 class="page-title">분석을 위한 데이터 입력하기</h1>
+
+    <!-- 주요 콘텐츠 박스 -->
+    <div class="content-box">
+
+      <!-- 사용자 정보 레이아웃: 양쪽 분할 -->
+      <div class="user-info-layout">
+
+        <!-- 왼쪽 설명 영역 -->
+        <div class="left-section">
+          <img src="{% static 'img/character.png' %}" alt="캐릭터 이미지">
+          <p>이용자님에게 딱 맞춘<br>분석 리포트를 작성하기 위해<br>필요한 정보를 입력해주세요!</p>
+          <p>입력해주신 내용을 반영해<br>스마트폰 기종 추천과<br>분석 리포트를 제공해드려요.</p>
+        </div>
+
+        <!-- 오른쪽 입력 폼 영역 -->
+        <div class="right-section">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <label for="nickname">닉네임</label>
+              <input type="text" id="nickname" name="nickname" class="input-field" placeholder="닉네임을 입력해주세요" required>
+            </div>
+
+            <div class="form-group">
+              <label>성별</label>
+              <div class="gender-btn-group">
+                <button type="button" class="btn gender-btn" data-value="M">남성</button>
+                <button type="button" class="btn gender-btn" data-value="F">여성</button>
+              </div>
+              <input type="hidden" id="gender" name="gender" required>
+            </div>
+
+            <div class="form-group">
+              <label for="age_group">연령대</label>
+              <select id="age_group" name="age_group" class="select-field" required>
+                <option value="">연령대를 선택해주세요</option>
+                <option value="10s">10대</option>
+                <option value="20s">20대</option>
+                <option value="30s">30대</option>
+                <option value="40s">40대</option>
+                <option value="50s">50대</option>
+                <option value="60s">60대</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn">다음 ▶</button>
+
+            {% if error %}
+              <p class="error">{{ error }}</p>
+            {% endif %}
+          </form>
+        </div>
+
+      </div> <!-- user-info-layout 끝 -->
+
+    </div> <!-- content-box 끝 -->
+
+  </div> <!-- center-container 끝 -->
+
+</div> <!-- container 끝 -->
+{% endblock %}
+
+{% block extra_script %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const genderButtons = document.querySelectorAll('.gender-btn');
+    const genderInput = document.getElementById('gender');
+
+    genderButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // 기존 버튼에서 active 제거
+        genderButtons.forEach(b => b.classList.remove('active'));
+
+        // 선택한 버튼에 active 추가
+        btn.classList.add('active');
+
+        // hidden input에 값 설정
+        genderInput.value = btn.getAttribute('data-value');
+
+        console.log("선택한 성별 값:", genderInput.value);
+      });
+    });
+  });
+</script>
+{% endblock %}
