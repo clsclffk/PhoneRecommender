@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp
+from datetime import datetime
 import pymysql
 from airflow.models import Variable
 import os
@@ -10,6 +11,7 @@ class SparkProcessor:
     
     def __init__(self, source='danawa'):
         self.source = source
+        self.today = datetime.now().strftime('%Y-%m-%d')
         
         # MySQL 연결 정보
         self.mysql_ip = Variable.get('mysql_ip', default_var='15.168.221.131')
@@ -64,37 +66,58 @@ class SparkProcessor:
         print(f"전처리 완료: {df.count()}건")
         return df
     
-    def truncate_table(self):
-        """MySQL 테이블 초기화"""
+    def save_to_mysql_with_partition(self, df):
+        """날짜별 파티션 Overwrite (멱등성 확보)"""
         conn = pymysql.connect(
             host=self.mysql_ip,
             user=self.user_id,
             password=self.user_password,
             database=self.database
         )
-        
         cursor = conn.cursor()
-        truncate_query = f"TRUNCATE TABLE {self.table_name}"
-        cursor.execute(truncate_query)
-        conn.commit()
         
-        cursor.close()
-        conn.close()
-        print(f"{self.table_name} 테이블 초기화 완료")
-    
-    def save_to_mysql(self, df):
-        """DataFrame을 MySQL에 저장"""
-        df.write.format('jdbc') \
-            .options(
-                url=self.mysql_url,
-                driver='com.mysql.jdbc.Driver',
-                dbtable=self.table_name,
-                user=self.user_id,
-                password=self.user_password
-            ) \
-            .mode('append') \
-            .save()
-        print(f"MySQL에 데이터 적재 완료")
+        try:
+            # 오늘 날짜 데이터만 삭제
+            if self.source == 'youtube':
+                delete_query = f"""
+                    DELETE FROM {self.table_name} 
+                    WHERE DATE(comment_publish_date) >= '{self.today}'
+                """
+            else:
+                delete_query = f"""
+                    DELETE FROM {self.table_name} 
+                    WHERE DATE(inserted_at) >= '{self.today}'
+                """
+            
+            cursor.execute(delete_query)
+            deleted_rows = cursor.rowcount
+            conn.commit()
+            print(f"파티션 삭제: {self.today} 데이터 {deleted_rows}건 삭제")
+            
+            # 신규 데이터 적재
+            df.write.format('jdbc')\
+                .options(
+                    url=self.mysql_url,
+                    driver='com.mysql.jdbc.Driver',
+                    dbtable=self.table_name,
+                    user=self.user_id,
+                    password=self.user_password
+                )\
+                .mode('append')\
+                .save()
+            
+            new_rows = df.count()
+            print(f"파티션 적재: {self.today} 데이터 {new_rows}건 추가")
+            print(f"{self.table_name} 멱등성 확보된 적재 완료")
+        
+        except Exception as e:
+            conn.rollback()
+            print(f"적재 실패, 롤백: {e}")
+            raise
+        
+        finally:
+            cursor.close()
+            conn.close()
     
     def process(self):
         """전체 처리 프로세스 실행"""
@@ -106,9 +129,9 @@ class SparkProcessor:
             if self.source == 'youtube':
                 df = self.preprocess_youtube_data(df)
             
-            self.truncate_table()
-            self.save_to_mysql(df)
-            print(f"\n★ {self.source.upper()} 데이터 처리 완료 ★")
+            # 날짜별 파티션 기반 적재
+            self.save_to_mysql_with_partition(df)
+            print(f"\n{self.source.upper()} 데이터 처리 완료")
         
         except Exception as e:
             print(f"처리 중 오류 발생: {e}")

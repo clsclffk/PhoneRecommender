@@ -1,6 +1,7 @@
 import os
 import time
 import pandas as pd
+from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from airflow.models import Variable
 
@@ -17,9 +18,27 @@ class YoutubeAPICollector:
         self.published_afters = Variable.get("youtube_published_after", deserialize_json=True)
         self.parquet_filenames = Variable.get("parquet_filename", deserialize_json=True)
         self.api_keys = Variable.get("youtube_api_key", deserialize_json=True)
+        
+        # 마지막 수집 시점 관리
+        self.last_collected_file = os.path.join(output_dir, 'last_collected.txt')
     
-    def search_videos(self, search_query, published_after, api_key):
-        """비디오 검색"""
+    def get_last_collected_date(self):
+        """마지막 수집 시점 조회"""
+        if os.path.exists(self.last_collected_file):
+            with open(self.last_collected_file, 'r') as f:
+                return f.read().strip()
+        
+        # 최초 실행: 7일 전부터 수집
+        return (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    def save_last_collected_date(self):
+        """현재 시점 저장"""
+        with open(self.last_collected_file, 'w') as f:
+            f.write(datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'))
+    
+    def search_videos(self, search_query, api_key):
+        """비디오 검색 (증분)"""
+        last_collected = self.get_last_collected_date()
         youtube_service = build('youtube', 'v3', developerKey=api_key)
         
         request = youtube_service.search().list(
@@ -27,8 +46,8 @@ class YoutubeAPICollector:
             part='snippet',
             type='video',
             maxResults=50,
-            order='viewCount',
-            publishedAfter=published_after
+            order='date',
+            publishedAfter=last_collected
         )
         
         response = request.execute()
@@ -46,6 +65,7 @@ class YoutubeAPICollector:
         # 특정 채널 제외
         video_data = [video for video in video_data if video['channel_title'] != '보겸TV']
         
+        print(f"[증분 수집] {last_collected} 이후 비디오 {len(video_data)}개 발견")
         return video_data
     
     def get_all_comments(self, video_id, api_key):
@@ -115,12 +135,12 @@ class YoutubeAPICollector:
         df.to_parquet(output_path, engine='pyarrow', index=False)
         print(f'저장 완료: {output_path}')
     
-    def collect_comments(self, search_query, published_after, api_key):
+    def collect_comments(self, search_query, api_key):
         """비디오 검색 후 댓글 수집"""
         print(f"\n'{search_query}' 검색 시작")
         
-        # 비디오 검색
-        video_data = self.search_videos(search_query, published_after, api_key)
+        # 비디오 검색 (증분)
+        video_data = self.search_videos(search_query, api_key)
         print(f"검색된 비디오: {len(video_data)}개")
         
         # 각 비디오의 댓글 수집
@@ -143,17 +163,19 @@ class YoutubeAPICollector:
         """전체 수집 프로세스 실행"""
         try:
             for i, search_query in enumerate(self.search_queries):
-                published_after = self.published_afters[i]
                 parquet_filename = self.parquet_filenames[i]
                 api_key = self.api_keys[i]
                 
-                # 댓글 수집
-                all_comments = self.collect_comments(search_query, published_after, api_key)
+                # 댓글 수집 (증분)
+                all_comments = self.collect_comments(search_query, api_key)
                 
                 # Parquet 저장
                 self.save_to_parquet(all_comments, parquet_filename)
             
-            print("\n★ 유튜브 댓글 수집 완료 ★")
+            # 수집 완료 시점 저장
+            self.save_last_collected_date()
+            
+            print("\n유튜브 증분 수집 완료")
         
         except Exception as e:
             print(f"수집 중 오류 발생: {e}")

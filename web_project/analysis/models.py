@@ -1,42 +1,41 @@
 from django.db import models
-from hobbies.models import HobbyKeywords
+import hashlib
+
 
 class TbAnalysisResults(models.Model):
-    """분석 결과 저장 테이블"""
     analysis_id = models.AutoField(primary_key=True)
-    hobby = models.ForeignKey(TbHobbies, on_delete=models.CASCADE, db_column='hobby_id')
+    hobby = models.ForeignKey('hobbies.TbHobbies', on_delete=models.CASCADE)
     
-    # 조회 기준 컬럼 (반정규화)
+    # 반정규화 컬럼
     age_group = models.CharField(max_length=10)
     gender = models.CharField(max_length=1)
-    keywords = models.JSONField()  # ['카메라', '화질', '초점']
     
-    # 분석 결과 데이터 (JSON)
-    freq_ratios = models.JSONField(blank=True, null=True)  # 키워드 빈도 비율
-    monthly_trends = models.JSONField(blank=True, null=True)  # 월별 트렌드
-    summaries = models.TextField(blank=True, null=True)  # LLM 요약문
-    related_words = models.CharField(max_length=500, blank=True, null=True)  # 연관어
-    wordcloud_data = models.TextField(blank=True, null=True)  # 워드클라우드
-    recommendations = models.TextField(blank=True, null=True)  # 추천 결과
+    # 키워드
+    keywords = models.JSONField()  # 원본
+    keywords_hash = models.CharField(max_length=64, db_index=True)  # 해시
+    
+    # 분석 결과
+    freq_ratios = models.JSONField(blank=True, null=True)
+    monthly_trends = models.JSONField(blank=True, null=True)
+    summaries = models.TextField(blank=True, null=True)
+    related_words = models.CharField(max_length=500, blank=True, null=True)
+    wordcloud_data = models.TextField(blank=True, null=True)
+    recommendations = models.TextField(blank=True, null=True)
     
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        managed = True
         db_table = 'tb_analysis_results'
-        verbose_name = 'Analysis Result'
-        verbose_name_plural = 'Analysis Results'
-        
-        # 인덱스
         indexes = [
-            # 복합 인덱스: 조회 성능의 핵심
             models.Index(
-                fields=['hobby', 'age_group', 'gender'],
-                name='idx_analysis_lookup'
-            ),
-            # 최신 결과 조회용
-            models.Index(
-                fields=['-updated_at'],
-                name='idx_analysis_recent'
+                fields=['keywords_hash', 'hobby', 'age_group', 'gender'],
+                name='idx_analysis_full'
             ),
         ]
+    
+    def save(self, *args, **kwargs):
+        if isinstance(self.keywords, list):
+            sorted_kw = sorted(self.keywords)
+            kw_str = '|'.join(sorted_kw)
+            self.keywords_hash = hashlib.sha256(kw_str.encode()).hexdigest()
+        super().save(*args, **kwargs)

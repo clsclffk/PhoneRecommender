@@ -22,7 +22,7 @@ with DAG(
     dag_id='danawa_pipeline',
     default_args=default_args,
     description='다나와 리뷰 크롤링 및 적재 파이프라인',
-    schedule_interval='0 * * * *',  # 매시간 정각에 실행
+    schedule_interval='0 3 * * *',  # 매일 새벽 3시
     catchup=False,
     tags=['danawa', 'crawler', 'etl']
 ) as dag:

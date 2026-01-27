@@ -32,7 +32,7 @@ with DAG(
     dag_id='main_data_pipeline',
     default_args=default_args,
     description='전체 데이터 수집 및 처리 파이프라인 오케스트레이터',
-    schedule_interval='0 * * * *',  # 매시간 정각에 실행
+    schedule_interval='0 3 * * *',  # 매일 새벽 3시
     catchup=False,
     tags=['main', 'orchestrator']
 ) as dag:

@@ -22,7 +22,7 @@ with DAG(
     dag_id='youtube_pipeline',
     default_args=default_args,
     description='유튜브 댓글 수집 및 적재 파이프라인',
-    schedule_interval='0 * * * *',  # 매시간 정각에 실행
+    schedule_interval='0 3 * * *',  # 매일 새벽 3시
     catchup=False,
     tags=['youtube', 'api', 'etl']
 ) as dag:

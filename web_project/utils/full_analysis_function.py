@@ -2,7 +2,17 @@ from collections import Counter
 from collections import defaultdict
 from django.db.models import Q
 import pandas as pd
+import hashlib
 from crawled_data.models import TbprocessedYoutube, TbcrawledDanawa  
+
+
+# 해시 생성 헬퍼 함수 (추가)
+def generate_keywords_hash(keywords):
+    """키워드 리스트를 해시로 변환"""
+    sorted_keywords = sorted(keywords)
+    keyword_string = '|'.join(sorted_keywords)
+    return hashlib.sha256(keyword_string.encode()).hexdigest()
+
 
 def get_keyword_percentage(sentences, keyword_list):
     """
@@ -25,6 +35,7 @@ def get_keyword_percentage(sentences, keyword_list):
     
     # 백분율 계산 (소수점 2자리로 반올림)
     return {key: round((keyword_counts[key] / total_count) * 100, 2) for key in keyword_list}
+
 
 # 키워드별 감성 점수 반환
 def calc_keyword_sentiment_score(df, brand, keywords):
@@ -52,6 +63,7 @@ def calc_keyword_sentiment_score(df, brand, keywords):
         }
     return result
 
+
 # 브랜드 전체 긍부정 비율 반환
 def calc_overall_sentiment_ratio(df, brand):
     brand_df = df[df['brand'] == brand]
@@ -70,39 +82,11 @@ def calc_overall_sentiment_ratio(df, brand):
         'neg': round(neg_count / total, 4)
     }
 
+
 def get_keyword_trend_with_ratios(selected_keywords, brand='samsung'):
     """
     선택한 키워드 기준으로 월별 키워드 비율 및 감성 비율만 반환하는 함수
-
-    {
-        '2025-01': {
-            '카메라': {
-                'ratio': 0.6,        # 전체 키워드 언급량 중 '카메라' 비율
-                'pos_ratio': 0.7,    # '카메라' 언급 중 긍정 비율
-                'neg_ratio': 0.3     # '카메라' 언급 중 부정 비율
-            },
-            ...
-        },
-        ...
-    }
-
-    1. ratio (키워드 비율)
-       → 특정 키워드가 월별 전체 키워드 언급량에서 차지하는 비율
-       → 계산식:
-           ratio = (해당 키워드 언급량) / (선택한 키워드 전체 언급량 합계)
-    
-    2. pos_ratio (긍정 비율)
-       → 특정 키워드에 대한 전체 언급 중 긍정 비율
-       → 계산식:
-           pos_ratio = (해당 키워드의 긍정 언급 수) / (해당 키워드 전체 언급 수)
-    
-    3. neg_ratio (부정 비율)
-       → 특정 키워드에 대한 전체 언급 중 부정 비율
-       → 계산식:
-           neg_ratio = (해당 키워드의 부정 언급 수) / (해당 키워드 전체 언급 수)
-
     """
-
     # 댓글 필터링
     qs = TbprocessedYoutube.objects.filter(
         brand=brand,
@@ -139,11 +123,10 @@ def get_keyword_trend_with_ratios(selected_keywords, brand='samsung'):
                 elif sentiment == '0':
                     trend_result[month][keyword]['neg'] += 1
 
-    # 비율 계산 (0 ~ 1 사이 비율)
+    # 비율 계산
     final_result = {}
 
     for month, keyword_data in trend_result.items():
-        # 월별 전체 키워드 언급 총합
         month_total_count = sum([data['count'] for data in keyword_data.values()])
         if month_total_count == 0:
             continue
@@ -167,28 +150,11 @@ def get_keyword_trend_with_ratios(selected_keywords, brand='samsung'):
 
     return final_result
 
+
 def get_top_comments(df, selected_keywords):
     """
     브랜드별 긍정/부정 대표 문장 추출
-    - 좋아요 수가 가장 높은 문장 또는 감성 점수가 가장 높은 문장 기준
-    - 브랜드별 + 키워드별 + 긍정/부정 대표 문장 추출
-    결과 예시:
-    {
-        "samsung": {
-            "카메라": {
-                "pos": "카메라가 선명하고 배터리가 오래 간다.",
-                "neg": "카메라가 저조도에서 흐릿해요."
-            },
-            "배터리": {...}
-        },
-        "apple": {
-            "카메라": {...},
-            "배터리": {...}
-        }
-    }
     """
-
-    # 브랜드 필터링
     df = df[df['brand'].isin(['samsung', 'apple'])]
 
     result = {
@@ -210,7 +176,6 @@ def get_top_comments(df, selected_keywords):
                 sentiment_type = 'pos' if label == '1' else 'neg'
 
                 if subset.empty:
-                    print(f"[INFO] {brand} - {keyword} - {'긍정' if label == '1' else '부정'} 문장 없음")
                     result[brand][keyword][sentiment_type] = "데이터 없음"  
                     continue
 
@@ -223,6 +188,7 @@ def get_top_comments(df, selected_keywords):
                 result[brand][keyword][sentiment_type] = selected_sentence
 
     return result
+
 
 # 다나와 평균 평점 계산
 def get_danawa_avg_scores():
