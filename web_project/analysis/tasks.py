@@ -20,8 +20,11 @@ from utils.llm_api import (
     generate_summary_for_page_2_2,
     generate_summary_for_page_3
 )
+# 성능 병목 로깅
+from utils.timer_decorator import timer
 
 @shared_task
+@timer 
 def run_analysis_step1_task(analysis_id):
     print("[TASK] Step 1 데이터 분석 시작")
     try:
@@ -62,6 +65,7 @@ def run_analysis_step1_task(analysis_id):
         print(f"[ERROR] Step 1 데이터 분석 실패: {e}")
 
 @shared_task
+@timer 
 def generate_summary_page_1_1(analysis_id):
     print("[TASK] summary_page_1_1 작업 시작")
 
@@ -75,7 +79,7 @@ def generate_summary_page_1_1(analysis_id):
             hobby = hobby_entry.hobby_name
             sorted_keywords = analysis_result.selected_keywords  
 
-            # 여기에 로그 추가!!! (핵심 데이터 상태 체크)
+            # 여기에 로그 추가 (핵심 데이터 상태 체크)
             print(f"[DEBUG] analysis_id={analysis_id}")
             print(f"[DEBUG] hobby={hobby}")
             print(f"[DEBUG] sorted_keywords={sorted_keywords}")
@@ -103,6 +107,7 @@ def generate_summary_page_1_1(analysis_id):
         print(f"[ERROR] summary_page_1_1 Task 실패: {e}")
 
 @shared_task
+@timer 
 def generate_summary_page_1_2(analysis_id):
 
     """Page 1-2 요약 Celery 비동기 Task"""
@@ -135,6 +140,7 @@ def generate_summary_page_1_2(analysis_id):
         print(f"[ERROR] summary_page_1_2 Task 실패: {e}")
 
 @shared_task
+@timer 
 def run_analysis_step2_task(analysis_id):
     print("[TASK] Step 2 데이터 분석 시작")
 
@@ -193,6 +199,7 @@ def run_analysis_step2_task(analysis_id):
         print(f"[ERROR] Step 2 데이터 분석 실패: {e}")
 
 @shared_task
+@timer 
 def generate_summary_page_2_1(analysis_id):
     print("[TASK] summary_page_2_1 작업 시작")
 
@@ -227,6 +234,7 @@ def generate_summary_page_2_1(analysis_id):
         print(f"[ERROR] summary_page_2_1 Task 실패: {e}")
 
 @shared_task
+@timer 
 def generate_summary_page_2_2(analysis_id):
     print("[TASK] summary_page_2_2 작업 시작")
 
@@ -257,6 +265,7 @@ def generate_summary_page_2_2(analysis_id):
 
 
 @shared_task
+@timer 
 def run_analysis_step3_task(analysis_id):
     print("[TASK] Step 3 데이터 분석 시작")
 
@@ -304,6 +313,7 @@ def run_analysis_step3_task(analysis_id):
         print(f"[ERROR] Step 3 데이터 분석 실패: {e}")
 
 @shared_task
+@timer 
 def generate_summary_page_3(analysis_id):
     print("[TASK] summary_page_3 작업 시작")
 
@@ -332,6 +342,7 @@ def generate_summary_page_3(analysis_id):
         print(f"[ERROR] summary_page_3 Task 실패: {e}")
 
 @shared_task
+@timer 
 # rag로 폰 추천하고 DB에 저장하는 task
 def run_analysis_step4_task(analysis_id):
     try:

@@ -2,6 +2,21 @@ from airflow import DAG
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
+from airflow.utils.task_group import TaskGroup
+from tasks.danawa_tasks import (
+    create_danawa_crawling_task,
+    create_danawa_to_hdfs_task,
+    create_danawa_processing_task,
+    create_danawa_cleanup_task,
+    create_danawa_advanced_processing_task
+)
+from tasks.youtube_tasks import (
+    create_youtube_collection_task,
+    create_youtube_to_hdfs_task,
+    create_youtube_processing_task,
+    create_youtube_cleanup_task,
+    create_youtube_advanced_processing_task
+)
 
 
 def log_pipeline_start():
@@ -44,20 +59,26 @@ with DAG(
     )
     
     # 다나와 파이프라인 트리거
-    trigger_danawa = TriggerDagRunOperator(
-        task_id='trigger_danawa_pipeline',
-        trigger_dag_id='danawa_pipeline',
-        wait_for_completion=True,
-        poke_interval=30
-    )
+    with TaskGroup(group_id='danawa_pipeline_group') as danawa_group:
+        d_crawl = create_danawa_crawling_task(dag)
+        d_hdfs = create_danawa_to_hdfs_task(dag)
+        d_process = create_danawa_processing_task(dag)
+        d_advanced = create_danawa_advanced_processing_task(dag)  
+        d_cleanup = create_danawa_cleanup_task(dag)
+        
+        # 그룹 내 의존성 설정
+        d_crawl >> d_hdfs >> d_process >> d_advanced >> d_cleanup 
     
     # 유튜브 파이프라인 트리거
-    trigger_youtube = TriggerDagRunOperator(
-        task_id='trigger_youtube_pipeline',
-        trigger_dag_id='youtube_pipeline',
-        wait_for_completion=True,
-        poke_interval=30
-    )
+    with TaskGroup(group_id='youtube_pipeline_group') as youtube_group:
+        y_collect = create_youtube_collection_task(dag)
+        y_hdfs = create_youtube_to_hdfs_task(dag)
+        y_process = create_youtube_processing_task(dag)
+        y_advanced = create_youtube_advanced_processing_task(dag) 
+        y_cleanup = create_youtube_cleanup_task(dag)
+        
+        # 그룹 내 의존성 설정
+        y_collect >> y_hdfs >> y_process >> y_advanced >> y_cleanup
     
     # 종료 로그
     end_log = PythonOperator(
@@ -67,4 +88,4 @@ with DAG(
     
     # Task 의존성
     # 다나와와 유튜브는 동시 실행
-    start_log >> [trigger_danawa, trigger_youtube] >> end_log
+    start_log >> [danawa_group, youtube_group] >> end_log

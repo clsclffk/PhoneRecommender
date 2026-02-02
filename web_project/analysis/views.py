@@ -35,13 +35,15 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils.timezone import now
 from django.urls import reverse
+from utils.timer_decorator import timer
 
 
 # 사용자 입력 완료 -> 비동기 작업 시작
 class StartAnalysisView(View):
     def get(self, request):
         return self.post(request)
-    
+        
+    @timer
     def post(self, request):
         print("[DEBUG] POST 데이터:", request.POST)
         
@@ -138,6 +140,7 @@ class StartAnalysisView(View):
 
 # 분석 1단계: 키워드 분석 결과 화면
 class AnalysisReportStep1View(View):
+    @timer
     def get(self, request):
         hobby_id = request.session.get('hobby_id')
         gender = request.session.get('gender')
@@ -203,6 +206,7 @@ class AnalysisReportStep1View(View):
 
 # 분석 2단계 : 감성 분석
 class AnalysisReportStep2View(View):
+    @timer
     def get(self, request):
         hobby_id = request.session.get('hobby_id')
         gender = request.session.get('gender')
@@ -288,6 +292,7 @@ class AnalysisReportStep2View(View):
 
 # 분석 3단계: 연관어 분석
 class AnalysisReportStep3View(View):
+    @timer
     def get(self, request):
         hobby_id = request.session.get('hobby_id')
         gender = request.session.get('gender')
@@ -348,6 +353,7 @@ class AnalysisReportStep3View(View):
 
 # 분석 4단계: 실 구매평 + 폰 추천
 class AnalysisReportStep4View(View):
+    @timer
     def get(self, request):
         hobby_id = request.session.get('hobby_id')
         gender = request.session.get('gender')

@@ -2,7 +2,6 @@ from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import timedelta
 
-
 def create_danawa_crawling_task(dag):
     """다나와 크롤링 Task 생성"""
     from utils.danawa_crawler import crawl_danawa
@@ -15,18 +14,17 @@ def create_danawa_crawling_task(dag):
         retry_delay=timedelta(minutes=3)
     )
 
-
 def create_danawa_to_hdfs_task(dag):
-    """다나와 데이터를 HDFS에 적재하는 Task 생성"""
+    """다나와 데이터를 HDFS에 날짜별 파티션으로 적재"""
     return BashOperator(
         task_id='upload_danawa_to_hdfs',
+        # {{ ds }}는 '실행 날짜(YYYY-MM-DD)' 변수
         bash_command='''
-        hdfs dfs -rm -r /danawa_data/* &&
-        hdfs dfs -put -f /home/lab13/airflow/data/danawa/*.parquet /danawa_data
+        hdfs dfs -mkdir -p /danawa_data/{{ ds }} &&
+        hdfs dfs -put -f /home/lab13/airflow/data/danawa/*.parquet /danawa_data/{{ ds }}
         ''',
         dag=dag
     )
-
 
 def create_danawa_processing_task(dag):
     """HDFS 데이터를 Spark로 처리하여 MySQL에 적재하는 Task 생성"""
@@ -35,11 +33,21 @@ def create_danawa_processing_task(dag):
     return PythonOperator(
         task_id='process_danawa_data',
         python_callable=process_danawa_data,
+        provide_context=True,
         dag=dag,
         retries=1,
         retry_delay=timedelta(minutes=2)
     )
 
+def create_danawa_advanced_processing_task(dag):
+    """다나와 가공 테이블 생성 (감성 분석 및 tb_processed_danawa 적재)"""
+    return BashOperator(
+        task_id='process_danawa_advanced',
+        bash_command='cd /home/lab13/projects/PhoneRecommender/web_project && /home/lab13/venv/bin/python manage.py process_danawa_data',
+        dag=dag,
+        retries=1,
+        retry_delay=timedelta(minutes=2)
+    )
 
 def create_danawa_cleanup_task(dag):
     """다나와 데이터 폴더 정리 Task 생성"""
