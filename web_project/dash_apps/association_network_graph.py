@@ -34,28 +34,36 @@ def update_network_graph(url_search):
 
     print(f"hobby: {hobby}, gender: {gender}, age_group: {age_group}, brand: {brand_param}")
 
-    from analysis.models import AnalysisResults, HobbyKeywords
+    import json
+    from analysis.models import TbAnalysisResults
+    from hobbies.models import TbHobbies
     try:
-        hobby_entry = HobbyKeywords.objects.get(hobby_name=hobby)
-        analysis_entry = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry.hobby_id,
-            selected_keywords=selected_keywords_sorted
-        ).order_by('-created_at').first()
+        hobby_entry = TbHobbies.objects.get(hobby_name=hobby)
+        analysis_entry = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords=selected_keywords_sorted
+        ).order_by('-updated_at').first()
         if not analysis_entry:
             return html.Div("분석 결과가 존재하지 않습니다.")
-
-    except (HobbyKeywords.DoesNotExist, AnalysisResults.DoesNotExist):
+        summaries = {}
+        if analysis_entry.summaries:
+            try:
+                summaries = json.loads(analysis_entry.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        related_words_samsung = summaries.get('related_words_samsung') or {}
+        related_words_apple = summaries.get('related_words_apple') or {}
+    except (TbHobbies.DoesNotExist, TbAnalysisResults.DoesNotExist):
         return html.Div("분석 결과가 존재하지 않음")
     
-    # 브랜드에 따른 처리
     if brand_param == 'samsung':
-        related_words_data = analysis_entry.related_words_samsung
+        related_words_data = related_words_samsung
         center_color = '#163E64'
         highlight_node_color = '#4E95D9'
         node_color = '#B7E0FF'
         brand = '삼성'
     else:
-        related_words_data = analysis_entry.related_words_apple
+        related_words_data = related_words_apple
         center_color = '#B3116E'
         highlight_node_color = '#F4A2C7'
         node_color = '#FCE4EE'

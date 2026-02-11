@@ -14,7 +14,12 @@ class PhoneRecommendationsAdmin(admin.ModelAdmin):
     get_hobby_name.short_description = 'Hobby Name'  
 
     def display_recommendation_phones(self, obj):
-        # recommendations에서 phone_name 리스트 추출
-        return ', '.join([rec.get('phone_name', '-') for rec in obj.recommendations]) if obj.recommendations else '-'
+        rec = obj.recommendations
+        if isinstance(rec, dict) and 'recommendations' in rec:
+            text = rec.get('recommendations', '') or ''
+            return (text[:80] + '...') if len(text) > 80 else text
+        if isinstance(rec, list):
+            return ', '.join([r.get('phone_name', '-') for r in rec]) if rec else '-'
+        return '-'
     display_recommendation_phones.short_description = '추천 스마트폰'
 

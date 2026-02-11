@@ -1,11 +1,11 @@
 from django.db import models
-from hobbies.models import HobbyKeywords
+from hobbies.models import TbHobbies
 
 # Create your models here.
 
 class PhoneRecommendations(models.Model):
     recommendation_id = models.AutoField(primary_key=True)
-    hobby_id = models.ForeignKey(HobbyKeywords, on_delete=models.CASCADE, db_column='hobby_id')
+    hobby_id = models.ForeignKey(TbHobbies, on_delete=models.CASCADE, db_column='hobby_id')
     selected_keywords = models.JSONField(default=list)
     
     # 후보 + 이유를 포함한 추천 결과 전체

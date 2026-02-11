@@ -6,8 +6,8 @@ from datetime import datetime
 from urllib.parse import parse_qs
 
 # Django 모델
-from analysis.models import AnalysisResults
-from hobbies.models import HobbyKeywords
+from analysis.models import TbAnalysisResults
+from hobbies.models import TbHobbies
 
 # DjangoDash 앱 이름
 app = DjangoDash('SentimentBarChart',
@@ -77,16 +77,16 @@ def update_month_slider(url_search):
     selected_keywords = selected_keywords_str.split(',') if selected_keywords_str else []
 
     try:
-        hobby_entry = HobbyKeywords.objects.get(hobby_name=hobby)
-        analysis_entry = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry,
-            selected_keywords=sorted(selected_keywords)
-        ).order_by('-created_at').first()
+        hobby_entry = TbHobbies.objects.get(hobby_name=hobby)
+        analysis_entry = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords=sorted(selected_keywords)
+        ).order_by('-updated_at').first()
 
         if not analysis_entry:
             return html.Div("분석 결과 없음")
 
-        trend_data = analysis_entry.keyword_monthly_trend.get(brand, {})
+        trend_data = (analysis_entry.monthly_trends or {}).get(brand, {})
 
         # 최근 6개월 필터링
         recent_months = get_recent_filtered_months(trend_data)
@@ -128,16 +128,16 @@ def update_sentiment_bar(url_search, selected_month_idx):
     selected_keywords = selected_keywords_str.split(',') if selected_keywords_str else []
 
     try:
-        hobby_entry = HobbyKeywords.objects.get(hobby_name=hobby)
-        analysis_entry = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry,
-            selected_keywords=sorted(selected_keywords)
-        ).order_by('-created_at').first()
+        hobby_entry = TbHobbies.objects.get(hobby_name=hobby)
+        analysis_entry = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords=sorted(selected_keywords)
+        ).order_by('-updated_at').first()
 
         if not analysis_entry:
             return html.Div("분석 결과 없음")
 
-        trend_data = analysis_entry.keyword_monthly_trend.get(brand, {})
+        trend_data = (analysis_entry.monthly_trends or {}).get(brand, {})
         if not trend_data:
             return html.Div("해당 브랜드에 대한 감성 데이터가 없습니다!")
 

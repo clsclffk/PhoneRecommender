@@ -4,10 +4,9 @@ from django.db import models
 import pandas as pd
 import json
 import hashlib
-from hobbies.models import HobbyKeywords 
-from analysis.models import AnalysisResults
-from users.models import Users
-from hobbies.models import HobbyKeywords 
+from hobbies.models import TbHobbies
+from analysis.models import TbAnalysisResults
+from users.models import TbUsers
 from phone_recommendations.models import PhoneRecommendations
 from utils.rag_phone_recommend.pipeline import (
     search_phone_recommendations,
@@ -16,6 +15,16 @@ from utils.rag_phone_recommend.pipeline import (
 )
 from utils.full_analysis_function import get_danawa_avg_scores, generate_keywords_hash
 from django.utils.safestring import mark_safe
+
+
+def _summaries_dict(obj):
+    """TbAnalysisResults.summaries JSON 파싱"""
+    if not obj or not getattr(obj, 'summaries', None):
+        return {}
+    try:
+        return json.loads(obj.summaries) if isinstance(obj.summaries, str) else (obj.summaries or {})
+    except (json.JSONDecodeError, TypeError):
+        return {}
 from analysis.tasks import (
     generate_summary_page_1_1,
     generate_summary_page_1_2,
@@ -65,10 +74,10 @@ class StartAnalysisView(View):
             print("[ERROR] 필수 입력값 누락")
             return redirect('user-info')
 
-        # HobbyKeywords 가져오기
+        # TbHobbies 가져오기
         try:
-            hobby_entry = HobbyKeywords.objects.get(hobby_id=hobby_id)
-        except HobbyKeywords.DoesNotExist:
+            hobby_entry = TbHobbies.objects.get(hobby_id=hobby_id)
+        except TbHobbies.DoesNotExist:
             print(f"[ERROR] 존재하지 않는 hobby_id: {hobby_id}")
             return redirect('hobby-select')
 
@@ -77,9 +86,11 @@ class StartAnalysisView(View):
         keywords_hash = generate_keywords_hash(sorted_keywords)
         
         # 기존 분석 결과 조회 (해시 기반)
-        existing_result = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry,
-            keywords_hash=keywords_hash
+        existing_result = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords_hash=keywords_hash,
+            age_group=age_group,
+            gender=gender
         ).first()
         
         if existing_result:
@@ -87,22 +98,20 @@ class StartAnalysisView(View):
             request.session['analysis_id'] = existing_result.analysis_id
             return redirect('analysis-step1')
 
-        # 사용자 정보 저장
-        user_entry = Users.objects.create(
+        # 사용자 정보 저장 (TbUsers: 닉네임, 성별, 연령대만)
+        user_entry = TbUsers.objects.create(
             nickname=nickname,
             gender=gender,
-            age_group=age_group,
-            hobby_id=hobby_entry,
-            selected_keywords=sorted_keywords,
-            created_at=now()
+            age_group=age_group
         )
-        print(f"[INFO] Users 저장 완료: user_id={user_entry.user_id}")
+        print(f"[INFO] TbUsers 저장 완료: user_id={user_entry.user_id}")
 
-        # 분석 결과 레코드 생성 (해시 자동 생성됨)
-        analysis_result = AnalysisResults.objects.create(
-            hobby_id=hobby_entry,
-            selected_keywords=sorted_keywords,
-            created_at=now()
+        # 분석 결과 레코드 생성 (해시는 save()에서 자동 생성)
+        analysis_result = TbAnalysisResults.objects.create(
+            hobby=hobby_entry,
+            keywords=sorted_keywords,
+            age_group=age_group,
+            gender=gender
         )
 
         analysis_id = analysis_result.analysis_id
@@ -154,8 +163,8 @@ class AnalysisReportStep1View(View):
             return redirect('user-info')
         
         try:
-            hobby_entry = HobbyKeywords.objects.get(hobby_id=hobby_id)
-        except HobbyKeywords.DoesNotExist:
+            hobby_entry = TbHobbies.objects.get(hobby_id=hobby_id)
+        except TbHobbies.DoesNotExist:
             print(f"[ERROR] 존재하지 않는 hobby_id: {hobby_id}")
             return redirect('hobby-select')
 
@@ -164,23 +173,33 @@ class AnalysisReportStep1View(View):
             return redirect('hobby-select')
 
         try:
-            analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        except AnalysisResults.DoesNotExist:
-            print(f"[ERROR] AnalysisResults 없음! analysis_id={analysis_id}")
+            analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        except TbAnalysisResults.DoesNotExist:
+            print(f"[ERROR] TbAnalysisResults 없음! analysis_id={analysis_id}")
             return redirect('hobby-select')
+
+        summaries = _summaries_dict(analysis_result)
+        freq_ratios = analysis_result.freq_ratios or {}
+        samsung_ratios = freq_ratios.get('samsung', {})
+        apple_ratios = freq_ratios.get('apple', {})
 
         # 폴링 체크
         if request.GET.get('status') == 'check':
             analysis_result.refresh_from_db()
+            summaries = _summaries_dict(analysis_result)
             ready = bool(
-                analysis_result.summary_page_1_1 and
-                analysis_result.summary_page_1_2
+                summaries.get('summary_page_1_1') and
+                summaries.get('summary_page_1_2')
             )
             return JsonResponse({'ready': ready})
         
         analysis_result.refresh_from_db()
+        summaries = _summaries_dict(analysis_result)
+        freq_ratios = analysis_result.freq_ratios or {}
+        samsung_ratios = freq_ratios.get('samsung', {})
+        apple_ratios = freq_ratios.get('apple', {})
 
-        if not (analysis_result.summary_page_1_1 and analysis_result.summary_page_1_2):
+        if not (summaries.get('summary_page_1_1') and summaries.get('summary_page_1_2')):
             print("[INFO] 분석이 아직 완료되지 않음 → 로딩 페이지")
             return render(request, 'analysis/loading.html')
 
@@ -195,10 +214,10 @@ class AnalysisReportStep1View(View):
             }.get(age_group, age_group),
             'hobby': hobby_entry.hobby_name,
             'selected_keywords': sorted(selected_keywords),
-            'samsung_keyword_ratios': analysis_result.freq_ratio_samsung,
-            'apple_keyword_ratios': analysis_result.freq_ratio_apple,
-            'summary_model1_1': analysis_result.summary_page_1_1,  
-            'summary_model1_2': analysis_result.summary_page_1_2,
+            'samsung_keyword_ratios': samsung_ratios,
+            'apple_keyword_ratios': apple_ratios,
+            'summary_model1_1': summaries.get('summary_page_1_1', ''),
+            'summary_model1_2': summaries.get('summary_page_1_2', ''),
         }
 
         return render(request, 'analysis/report_step1.html', context)
@@ -219,37 +238,39 @@ class AnalysisReportStep2View(View):
             return redirect('user-info')
         
         try:
-            hobby_entry = HobbyKeywords.objects.get(hobby_id=hobby_id)
-        except HobbyKeywords.DoesNotExist:
+            hobby_entry = TbHobbies.objects.get(hobby_id=hobby_id)
+        except TbHobbies.DoesNotExist:
             print(f"[ERROR] 존재하지 않는 hobby_id: {hobby_id}")
             return redirect('hobby-select')
 
         try:
-            analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        except AnalysisResults.DoesNotExist:
-            print(f"[ERROR] AnalysisResults 없음! analysis_id={analysis_id}")
+            analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        except TbAnalysisResults.DoesNotExist:
+            print(f"[ERROR] TbAnalysisResults 없음! analysis_id={analysis_id}")
             return redirect('user-info')
+
+        summaries = _summaries_dict(analysis_result)
+        sentiment_top_sentences = summaries.get('sentiment_top_sentences') or {}
 
         # 폴링 체크
         if request.GET.get('status') == 'check':
             analysis_result.refresh_from_db()
-            ready = bool(
-                analysis_result.summary_page_2_1 and
-                analysis_result.summary_page_2_2
-            )
+            summaries = _summaries_dict(analysis_result)
+            ready = bool(summaries.get('summary_page_2_1') and summaries.get('summary_page_2_2'))
             return JsonResponse({'ready': ready})
 
         analysis_result.refresh_from_db()
+        summaries = _summaries_dict(analysis_result)
+        sentiment_top_sentences = summaries.get('sentiment_top_sentences') or {}
 
-        if not (analysis_result.summary_page_2_1 and analysis_result.summary_page_2_2):
+        if not (summaries.get('summary_page_2_1') and summaries.get('summary_page_2_2')):
             return render(request, 'analysis/loading.html')
 
         age_group_kor = {'10s': '10대', '20s': '20대', '30s': '30대', '40s': '40대', '50s': '50대', '60s': '60대'}.get(age_group, age_group)
         gender_kor = {'M': '남성', 'F': '여성'}.get(gender, gender)
 
-        selected_keywords = analysis_result.selected_keywords
+        selected_keywords = analysis_result.keywords or []
         sorted_selected_keywords = sorted(selected_keywords)
-        sentiment_top_sentences = analysis_result.sentiment_top_sentences or {}
 
         samsung_sentences = []
         apple_sentences = []
@@ -278,10 +299,10 @@ class AnalysisReportStep2View(View):
             'gender_kor': gender_kor,
             'age_group_kor': age_group_kor,
             'hobby': hobby_entry.hobby_name,
-            'keyword_list': hobby_entry.keyword_list,
+            'keyword_list': [],  # TbHobbies에는 keyword_list 없음
             'selected_keywords': selected_keywords,
-            'summary_model2_1': analysis_result.summary_page_2_1,
-            'summary_model2_2': analysis_result.summary_page_2_2,
+            'summary_model2_1': summaries.get('summary_page_2_1', ''),
+            'summary_model2_2': summaries.get('summary_page_2_2', ''),
             'samsung_sentences': samsung_sentences,
             'apple_sentences': apple_sentences,
             'feedback_data_json': json.dumps(feedback_data, ensure_ascii=False),
@@ -308,30 +329,34 @@ class AnalysisReportStep3View(View):
             return redirect('user-info')
         
         try:
-            analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        except AnalysisResults.DoesNotExist:
-            print(f"[ERROR] AnalysisResults 없음! analysis_id={analysis_id}")
+            analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        except TbAnalysisResults.DoesNotExist:
+            print(f"[ERROR] TbAnalysisResults 없음! analysis_id={analysis_id}")
             return redirect('user-info')
+
+        summaries = _summaries_dict(analysis_result)
+        related_words_samsung = summaries.get('related_words_samsung') or {}
+        related_words_apple = summaries.get('related_words_apple') or {}
 
         # 폴링 체크
         if request.GET.get('status') == 'check':
             analysis_result.refresh_from_db()
-            ready = bool(analysis_result.summary_page_3)
-            return JsonResponse({'ready': ready})
+            summaries = _summaries_dict(analysis_result)
+            return JsonResponse({'ready': bool(summaries.get('summary_page_3'))})
 
         analysis_result.refresh_from_db()
+        summaries = _summaries_dict(analysis_result)
+        related_words_samsung = summaries.get('related_words_samsung') or {}
+        related_words_apple = summaries.get('related_words_apple') or {}
 
-        if not analysis_result.summary_page_3:
+        if not summaries.get('summary_page_3'):
             return render(request, 'analysis/loading.html')
 
-        selected_keywords = analysis_result.selected_keywords
-        hobby_entry = analysis_result.hobby_id
+        selected_keywords = analysis_result.keywords or []
+        hobby_entry = analysis_result.hobby
 
         age_group_kor = {'10s': '10대', '20s': '20대', '30s': '30대', '40s': '40대', '50s': '50대', '60s': '60대'}.get(age_group, age_group)
         gender_kor = {'M': '남성', 'F': '여성'}.get(gender, gender)
-
-        related_words_samsung = analysis_result.related_words_samsung or {}
-        related_words_apple = analysis_result.related_words_apple or {}
 
         samsung_keywords = related_words_samsung.get('related_words', [])
         apple_keywords = related_words_apple.get('related_words', [])
@@ -341,11 +366,11 @@ class AnalysisReportStep3View(View):
             'gender_kor': gender_kor,
             'age_group_kor': age_group_kor,
             'hobby': hobby_entry.hobby_name,
-            'keyword_list': hobby_entry.keyword_list,
+            'keyword_list': [],
             'selected_keywords': selected_keywords,
             'samsung_keywords': samsung_keywords,
             'apple_keywords': apple_keywords,
-            'summary_model3': analysis_result.summary_page_3,
+            'summary_model3': summaries.get('summary_page_3', ''),
         }
 
         return render(request, 'analysis/report_step3.html', context)
@@ -366,21 +391,21 @@ class AnalysisReportStep4View(View):
             return redirect('user-info')
 
         try:
-            hobby_entry = HobbyKeywords.objects.get(hobby_id=hobby_id)
-        except HobbyKeywords.DoesNotExist:
+            hobby_entry = TbHobbies.objects.get(hobby_id=hobby_id)
+        except TbHobbies.DoesNotExist:
             print(f"[ERROR] 존재하지 않는 hobby_id: {hobby_id}")
             return redirect('hobby-select')
 
         try:
-            analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        except AnalysisResults.DoesNotExist:
-            print(f"[ERROR] AnalysisResults 없음! analysis_id={analysis_id}")
+            analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        except TbAnalysisResults.DoesNotExist:
+            print(f"[ERROR] TbAnalysisResults 없음! analysis_id={analysis_id}")
             return redirect('user-info')
 
-        selected_keywords = sorted(analysis_result.selected_keywords)
+        selected_keywords = sorted(analysis_result.keywords or [])
 
         phone_recommendation = PhoneRecommendations.objects.filter(
-            hobby_id=hobby_id,
+            hobby_id=hobby_entry,
             selected_keywords=selected_keywords
         ).first()
 
@@ -392,9 +417,11 @@ class AnalysisReportStep4View(View):
         if not phone_recommendation:
             return render(request, 'analysis/loading.html')
 
-        recommendation_text_raw = phone_recommendation.recommendations.get(
-            'recommendations', "추천 결과가 없습니다."
-        )
+        rec = phone_recommendation.recommendations
+        if isinstance(rec, dict):
+            recommendation_text_raw = rec.get('recommendations', "추천 결과가 없습니다.")
+        else:
+            recommendation_text_raw = rec or "추천 결과가 없습니다."
 
         recommendation_lines = [
             line.strip() for line in recommendation_text_raw.strip().split('\n')
@@ -434,7 +461,7 @@ class AnalysisReportStep4View(View):
             'gender_kor': gender_kor,
             'age_group_kor': age_group_kor,
             'hobby': hobby_entry.hobby_name,
-            'keyword_list': hobby_entry.keyword_list,
+            'keyword_list': [],
             'selected_keywords': selected_keywords,
             'recommendation_list': recommendation_list,
             'samsung_score': int(samsung_score),

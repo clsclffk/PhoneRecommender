@@ -1,5 +1,4 @@
 from django.db import models
-from hobbies.models import HobbyKeywords
 
 # Create your models here.
 

@@ -1,13 +1,13 @@
 from django import forms
-from .models import Users
+from .models import TbUsers
 
 class UserInfoForm(forms.ModelForm):
     class Meta:
-        model = Users
+        model = TbUsers
         fields = ['nickname', 'gender', 'age_group']
         widgets = {
-            'gender': forms.Select(choices=Users.GENDER_CHOICES),
-            'age_group': forms.Select(choices=Users.AGE_GROUP_CHOICES),  # 여기서 `10대` → `10s` 값 저장
+            'gender': forms.Select(choices=TbUsers.GENDER_CHOICES),
+            'age_group': forms.Select(choices=TbUsers.AGE_GROUP_CHOICES),  # 여기서 `10대` → `10s` 값 저장
         }
     
     def clean_nickname(self):

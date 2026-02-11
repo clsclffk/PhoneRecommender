@@ -140,8 +140,7 @@ def save_recommendations_to_db(hobby_entry, selected_keywords, generated_recomme
     PhoneRecommendations.objects.create(
         hobby_id=hobby_entry,
         selected_keywords=selected_keywords_sorted,
-        recommendations=recommendations_json, 
-        created_at=now()
+        recommendations=recommendations_json
     )
 
     print(f"[INFO] 추천 결과 저장 완료! hobby_id: {hobby_entry.hobby_id}, keywords: {selected_keywords_sorted}")

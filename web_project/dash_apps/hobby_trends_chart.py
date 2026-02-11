@@ -2,9 +2,7 @@ import dash
 from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
 import random
-from django.db.models import Sum
 from django_plotly_dash import DjangoDash
-from hobbies.models import HobbyTrends, HobbyKeywords 
 from collections import defaultdict
 import re
 
@@ -58,34 +56,15 @@ default_raw_data = [
 ]
 
 def build_data_dict():
+    """기본 데이터로 차트 구성 (TbHobbyRequests 등으로 확장 가능)"""
     data_dict = defaultdict(lambda: [''] * len(categories))
     
-    # 1. 기본 데이터 우선 입력
     for idx, (age_group, gender) in enumerate(categories):
         kor_gender = '남' if gender == 'M' else '여'
         kor_age = age_group.replace('s', '')
         for _, a, r, hobby in default_raw_data:
             if kor_gender == _ and kor_age == a:
                 data_dict[hobby][idx] = f"{r}위"
-
-    # 2. 그 후에 DB로 덮어쓰기 (존재하는 경우에만)
-    hobbies = {h.hobby_id: h.hobby_name for h in HobbyKeywords.objects.all()}
-
-    for idx, (age_group, gender) in enumerate(categories):
-        queryset = (
-            HobbyTrends.objects
-            .filter(age_group=age_group, gender=gender)
-            .values('hobby_id')
-            .annotate(total_count=Sum('count'))
-            .order_by('-total_count')
-        )
-
-        if queryset.exists():
-            for rank, item in enumerate(queryset[:3]):
-                hobby_name = hobbies.get(item['hobby_id'])
-                if hobby_name:
-                    # 기존 기본 데이터를 덮어씀
-                    data_dict[hobby_name][idx] = f"{rank+1}위"
 
     return data_dict, category_labels
 

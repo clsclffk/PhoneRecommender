@@ -1,19 +1,20 @@
 from django.contrib import admin
-from .models import HobbyKeywords, HobbyTrends
+from .models import TbHobbies, TbHobbyRequests
 
 # Register your models here.
-@admin.register(HobbyKeywords)
-class HobbyKeywordsAdmin(admin.ModelAdmin):
-    list_display = ('hobby_name', 'created_at', 'updated_at')
+@admin.register(TbHobbies)
+class TbHobbiesAdmin(admin.ModelAdmin):
+    list_display = ('hobby_id', 'hobby_name')
     search_fields = ('hobby_name',)
     list_filter = ('hobby_name',)
 
-@admin.register(HobbyTrends)
-class HobbyTrendsAdmin(admin.ModelAdmin):
-    list_display = ('trends_id', 'get_hobby_name', 'gender', 'age_group', 'date', 'count')
-    search_fields = ('hobby_id__hobby_name',)
-    list_filter = ('gender', 'age_group', 'date')
+
+@admin.register(TbHobbyRequests)
+class TbHobbyRequestsAdmin(admin.ModelAdmin):
+    list_display = ('request_id', 'get_hobby_name', 'user', 'analysis_id', 'keyword', 'status')
+    search_fields = ('keyword', 'hobby__hobby_name')
+    list_filter = ('status',)
 
     def get_hobby_name(self, obj):
-        return obj.hobby_id.hobby_name  # FK를 따라가서 hobby_name을 가져옴
+        return obj.hobby.hobby_name if obj.hobby else '-'
     get_hobby_name.short_description = 'Hobby Name'

@@ -5,8 +5,8 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 # Django 모델 불러오기
-from analysis.models import AnalysisResults
-from hobbies.models import HobbyKeywords
+from analysis.models import TbAnalysisResults
+from hobbies.models import TbHobbies
 
 # Dash 앱 생성
 app = DjangoDash('KeywordBarChart')
@@ -40,20 +40,23 @@ def update_graph(url_search):
     sorted_selected_keywords = sorted(selected_keywords)
 
     try:
-        hobby_entry = HobbyKeywords.objects.get(hobby_name=hobby)
-        analysis_entry = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry,
-            selected_keywords=sorted_selected_keywords
-        ).exclude(freq_ratio_samsung={}).exclude(freq_ratio_apple={}).first()
+        hobby_entry = TbHobbies.objects.get(hobby_name=hobby)
+        analysis_entry = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords=sorted_selected_keywords
+        ).exclude(freq_ratios={}).first()
 
         if not analysis_entry:
             return html.Div("분석 결과가 존재하지 않음")
 
-    except HobbyKeywords.DoesNotExist:
-        return html.Div("취미가 존재하지 않음")
+        freq_ratios = analysis_entry.freq_ratios or {}
+        freq_samsung = freq_ratios.get('samsung') or {}
+        freq_apple = freq_ratios.get('apple') or {}
+        if not freq_samsung or not freq_apple:
+            return html.Div("분석 결과가 존재하지 않음")
 
-    freq_samsung = analysis_entry.freq_ratio_samsung
-    freq_apple = analysis_entry.freq_ratio_apple
+    except TbHobbies.DoesNotExist:
+        return html.Div("취미가 존재하지 않음")
 
     keywords = list(freq_samsung.keys())
     samsung_values = list(freq_samsung.values())

@@ -18,7 +18,7 @@ class TbHobbies(models.Model):
 class TbHobbyRequests(models.Model):
     """사용자별 취미 요청 기록"""
     request_id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(TbUsers, on_delete=models.CASCADE, db_column='user_id')
+    user = models.ForeignKey('users.TbUsers', on_delete=models.CASCADE, db_column='user_id')
     analysis_id = models.IntegerField()  # tb_analysis_results와 연결
     hobby = models.ForeignKey(TbHobbies, on_delete=models.CASCADE, db_column='hobby_id')
     keyword = models.CharField(max_length=100)  # 단일 키워드 (JSON 아님)

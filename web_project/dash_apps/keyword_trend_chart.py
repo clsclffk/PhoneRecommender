@@ -7,8 +7,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 # Django 모델
-from analysis.models import AnalysisResults
-from hobbies.models import HobbyKeywords
+from analysis.models import TbAnalysisResults
+from hobbies.models import TbHobbies
 
 # Dash 앱 생성
 app = DjangoDash('KeywordTrendChart')
@@ -57,21 +57,21 @@ def update_trend_graph(url_search):
     sorted_selected_keywords = sorted(selected_keywords)
 
     try:
-        hobby_entry = HobbyKeywords.objects.get(hobby_name=hobby)
-        analysis_entry = AnalysisResults.objects.filter(
-            hobby_id=hobby_entry,
-            selected_keywords=sorted_selected_keywords
-        ).order_by('-created_at').first()
+        hobby_entry = TbHobbies.objects.get(hobby_name=hobby)
+        analysis_entry = TbAnalysisResults.objects.filter(
+            hobby=hobby_entry,
+            keywords=sorted_selected_keywords
+        ).order_by('-updated_at').first()
         
         if not analysis_entry:
             return html.Div("분석 결과 없음")
 
-        trend_data = analysis_entry.keyword_monthly_trend.get(brand, {})
+        trend_data = (analysis_entry.monthly_trends or {}).get(brand, {})
         months_datetime = sorted([datetime.strptime(m, "%Y-%m") for m in trend_data.keys()])
         recent_months_datetime = months_datetime[-6:]
         months = [dt.strftime("%Y-%m") for dt in recent_months_datetime]
 
-        keywords = analysis_entry.selected_keywords
+        keywords = analysis_entry.keywords or []
 
         # 랜덤 색상 매핑
         keyword_colors = get_fixed_colors(keywords)

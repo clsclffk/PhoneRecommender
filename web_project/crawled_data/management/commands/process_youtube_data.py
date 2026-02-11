@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
-from crawled_data.models import TbcrawledYoutube, TbprocessedYoutube  
+from crawled_data.models import TbRawYoutube, TbProcessedYoutube
 from utils.data_preprocessing import (
     clean_data, clean_text, normalize, split_sentences
 )
@@ -29,7 +29,7 @@ sentiment_classifier = TextClassificationPipeline(
 
 def truncate_table():
         with connection.cursor() as cursor:
-            cursor.execute('TRUNCATE TABLE tbProcessed_Youtube')
+            cursor.execute('TRUNCATE TABLE tb_processed_youtube')
 
 class Command(BaseCommand):
     help = 'YouTube 데이터를 전처리하고 감성 분석 및 브랜드 분류 후 tbProcessed_Youtube 테이블에 적재'
@@ -38,15 +38,13 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('YouTube 데이터 처리 시작'))
         start_time = time.time()
 
-        # 모델 필드명 전부 가져오기
-        field_names = [f.name for f in TbcrawledYoutube._meta.get_fields()]
-        self.stdout.write(self.style.WARNING(f"모든 필드: {field_names}"))
-
-        # 데이터 로드
-        youtube_data = TbcrawledYoutube.objects.all().values(*field_names)
+        # 데이터 로드 (TbRawYoutube: video_id, content, like_count, commented_at)
+        youtube_data = TbRawYoutube.objects.all().values('video_id', 'content', 'like_count', 'commented_at')
         df = pd.DataFrame(list(youtube_data))
+        df = df.rename(columns={'content': 'comment'})
+        df['comment_publish_date'] = df['commented_at']
         self.stdout.write(self.style.WARNING(f"원본 적재 데이터 수: {df.shape[0]}개"))
-        
+
         # 전처리
         df = clean_data(df)
         self.stdout.write(self.style.WARNING(f"[디버깅] clean_data 이후 행 개수: {df.shape[0]}개"))
@@ -97,21 +95,18 @@ class Command(BaseCommand):
 
         objects = []
         for _, row in df_split.iterrows():
-            obj = TbprocessedYoutube(
-                video_id = row['video_id'],
-                comment = row['comment'],
-                sentence = row['sentence'],
-                like_count = row['like_count'],
-                brand=row['predicted_brand'],  # samsung / apple
-                sentiment_label=row['sentiment_label'],  # 1/0
-                sentiment_score=row['sentiment_score'],  # float 확률
-                comment_publish_date=row['comment_publish_date']
+            obj = TbProcessedYoutube(
+                sentences=row['sentence'],
+                like_count=int(row['like_count']) if pd.notna(row.get('like_count')) else 0,
+                brand=row['predicted_brand'],
+                sentiment_label=str(row['sentiment_label']),
+                sentiment_score=row['sentiment_score'],
+                commented_at=row['comment_publish_date']
             )
             objects.append(obj)
 
-        # 1000개씩 쪼개서 넣기 (성능 최적화)
-        TbprocessedYoutube.objects.bulk_create(objects, batch_size=1000)
-        self.stdout.write(self.style.SUCCESS(f"{len(df_split)}개의 댓글이 tbProcessedYoutube에 저장 완료"))
+        TbProcessedYoutube.objects.bulk_create(objects, batch_size=1000)
+        self.stdout.write(self.style.SUCCESS(f"{len(df_split)}개의 댓글이 TbProcessedYoutube에 저장 완료"))
 
 
 

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
-from crawled_data.models import TbcrawledDanawa, TbprocessedDanawa
+from crawled_data.models import TbRawDanawa, TbProcessedDanawa
 import pandas as pd
 import time
 import requests
@@ -13,7 +13,7 @@ from utils.brand_classification import has_brand_keyword
 
 def truncate_table():
     with connection.cursor() as cursor:
-        cursor.execute('TRUNCATE TABLE tbProcessed_Danawa')
+        cursor.execute('TRUNCATE TABLE tb_processed_danawa')
 
 class Command(BaseCommand):
    
@@ -25,13 +25,14 @@ class Command(BaseCommand):
         response = requests.get(url)
         external_stopwords = response.text.splitlines()
 
-        # 데이터 로드
-        raw_data = TbcrawledDanawa.objects.all().values('scoring', 'review_content', 'item')
-        df = pd.DataFrame(list(raw_data))   
+        # 데이터 로드 (TbRawDanawa: item_name, content, rating)
+        raw_data = TbRawDanawa.objects.all().values('rating', 'content', 'item_name')
+        df = pd.DataFrame(list(raw_data))
+        df = df.rename(columns={'content': 'review_content', 'item_name': 'item', 'rating': 'scoring'})
 
         # 전처리
-        df = df.dropna(subset=['review_content']) 
-        df = df[df['review_content'].str.strip() != '']
+        df = df.dropna(subset=['review_content'])
+        df = df[df['review_content'].astype(str).str.strip() != '']
         df['clean_review'] = df['review_content'].apply(lambda x: clean_text(x, stopwords=external_stopwords))
         df['normalized_review'] = df['clean_review'].apply(normalize)
         df['split_sentences'] = df['normalized_review'].apply(split_sentences)
@@ -76,17 +77,16 @@ class Command(BaseCommand):
 
         objects = []
         for _, row in df.iterrows():
-            obj = TbprocessedDanawa(
-                review_content = row['review_content'],
-                sentence = row['sentence'],
-                brand = row['brand'],
-                sentiment_label = row['sentiment_label'],
-                sentiment_score = row['sentiment_score'],
-                noun = row['noun'],
-                scoring = row['scoring']  # 평점도 같이 저장
+            obj = TbProcessedDanawa(
+                cleaned_content=row['sentence'],
+                nouns=row['noun'],
+                brand_id=1 if row['brand'] == 'samsung' else 2,
+                sentiment_label=str(row['sentiment_label']),
+                sentiment_score=row['sentiment_score'],
+                rating=int(row['scoring']) if pd.notna(row['scoring']) else 0
             )
             objects.append(obj)
 
         # DB에 저장
-        TbprocessedDanawa.objects.bulk_create(objects, batch_size=1000)
-        self.stdout.write(self.style.SUCCESS(f"{len(objects)}개 리뷰가 Tbprocessed_Danawa에 저장 완료"))
+        TbProcessedDanawa.objects.bulk_create(objects, batch_size=1000)
+        self.stdout.write(self.style.SUCCESS(f"{len(objects)}개 리뷰가 TbProcessedDanawa에 저장 완료"))

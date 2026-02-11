@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.db.models import Q
 import pandas as pd
 import hashlib
-from crawled_data.models import TbprocessedYoutube, TbcrawledDanawa  
+from crawled_data.models import TbProcessedYoutube, TbRawDanawa
 
 
 # 해시 생성 헬퍼 함수 (추가)
@@ -86,20 +86,28 @@ def calc_overall_sentiment_ratio(df, brand):
 def get_keyword_trend_with_ratios(selected_keywords, brand='samsung'):
     """
     선택한 키워드 기준으로 월별 키워드 비율 및 감성 비율만 반환하는 함수
+    TbProcessedYoutube: sentences(TextField), commented_at 사용
     """
-    # 댓글 필터링
-    qs = TbprocessedYoutube.objects.filter(
-        brand=brand,
-        sentence__iregex=r'(' + '|'.join(selected_keywords) + ')'
-    ).values('sentence', 'comment_publish_date', 'sentiment_label')
-
-    if not qs.exists():
+    qs = TbProcessedYoutube.objects.filter(brand=brand).values(
+        'sentences', 'commented_at', 'sentiment_label'
+    )
+    rows = []
+    for r in qs:
+        text = r.get('sentences') or ''
+        for line in (text if isinstance(text, str) else str(text)).split('\n'):
+            s = line.strip()
+            if not s:
+                continue
+            if any(kw in s for kw in selected_keywords):
+                rows.append({
+                    'sentence': s,
+                    'comment_publish_date': r['commented_at'],
+                    'sentiment_label': r['sentiment_label']
+                })
+    if not rows:
         return {}
 
-    # DataFrame 변환
-    df = pd.DataFrame.from_records(qs)
-
-    # 날짜 전처리
+    df = pd.DataFrame.from_records(rows)
     df['month'] = pd.to_datetime(df['comment_publish_date']).dt.to_period('M').astype(str)
 
     # 초기화
@@ -190,14 +198,18 @@ def get_top_comments(df, selected_keywords):
     return result
 
 
-# 다나와 평균 평점 계산
+# 다나와 평균 평점 계산 (TbRawDanawa: item_name, rating)
 def get_danawa_avg_scores():
-    raw_data = TbcrawledDanawa.objects.all().values('scoring', 'item')
+    raw_data = TbRawDanawa.objects.all().values('item_name', 'rating')
     df = pd.DataFrame(list(raw_data))
+    if df.empty:
+        return {'samsung': 0, 'apple': 0}
 
-    df['brand'] = df['item'].apply(lambda x: 'samsung' if x == 'S24' else 'apple' if x == '아이폰16' else None)
-    df['scoring'] = df['scoring'].astype(str).str.replace('점', '', regex=False)
-    df['scoring'] = pd.to_numeric(df['scoring'], errors='coerce')
-
-    avg_scores = df.groupby('brand')['scoring'].mean().round(2).to_dict()
+    df['brand'] = df['item_name'].apply(
+        lambda x: 'samsung' if x and 'S24' in str(x) else 'apple' if x and '아이폰' in str(x) else None
+    )
+    df = df[df['brand'].notna()]
+    if df.empty:
+        return {'samsung': 0, 'apple': 0}
+    avg_scores = df.groupby('brand')['rating'].mean().round(2).to_dict()
     return avg_scores

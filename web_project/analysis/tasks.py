@@ -1,8 +1,9 @@
 from celery import shared_task
 import pandas as pd
-from analysis.models import AnalysisResults
-from hobbies.models import HobbyKeywords
-from crawled_data.models import TbprocessedYoutube
+import json
+from analysis.models import TbAnalysisResults
+from hobbies.models import TbHobbies
+from crawled_data.models import TbProcessedYoutube
 from phone_recommendations.models import PhoneRecommendations
 from utils.full_analysis_function import get_keyword_percentage, calc_keyword_sentiment_score, calc_overall_sentiment_ratio, get_keyword_trend_with_ratios, get_top_comments
 from utils.llm_api import summarize_sentences_with_llm
@@ -23,41 +24,46 @@ from utils.llm_api import (
 # 성능 병목 로깅
 from utils.timer_decorator import timer
 
+def _flatten_sentences(queryset_sentences):
+    """TbProcessedYoutube.sentences (텍스트)를 문장 리스트로 변환"""
+    out = []
+    for text in queryset_sentences:
+        if not text:
+            continue
+        for line in (text if isinstance(text, str) else str(text)).split('\n'):
+            s = line.strip()
+            if s:
+                out.append(s)
+    return out
+
+
 @shared_task
 @timer 
 def run_analysis_step1_task(analysis_id):
     print("[TASK] Step 1 데이터 분석 시작")
     try:
-        # AnalysisResults 객체 불러오기
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-        hobby_entry = analysis_result.hobby_id
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
+        sorted_keywords = analysis_result.keywords or []
 
-        # 데이터 로드
-        samsung_sentences = TbprocessedYoutube.objects.filter(brand='samsung').values_list('sentence', flat=True)
-        apple_sentences = TbprocessedYoutube.objects.filter(brand='apple').values_list('sentence', flat=True)
+        # 데이터 로드: sentences 필드를 문장 리스트로 펼침
+        qs_samsung = TbProcessedYoutube.objects.filter(brand='samsung').values_list('sentences', flat=True)
+        qs_apple = TbProcessedYoutube.objects.filter(brand='apple').values_list('sentences', flat=True)
+        samsung_sentences = _flatten_sentences(qs_samsung)
+        apple_sentences = _flatten_sentences(qs_apple)
 
-        # 분석 수행
         samsung_freq_ratio = get_keyword_percentage(samsung_sentences, sorted_keywords)
         apple_freq_ratio = get_keyword_percentage(apple_sentences, sorted_keywords)
 
-        keyword_monthly_trend = {
+        monthly_trends = {
             "samsung": get_keyword_trend_with_ratios(sorted_keywords, brand="samsung"),
             "apple": get_keyword_trend_with_ratios(sorted_keywords, brand="apple")
         }
 
-        # 저장
-        print(f"[DEBUG] Step 1 저장 직전 - freq_ratio_apple={apple_freq_ratio}")
-        print(f"[DEBUG] Step 1 저장 직전 - freq_ratio_samsung={samsung_freq_ratio}")
-
-        analysis_result.freq_ratio_samsung = samsung_freq_ratio
-        analysis_result.freq_ratio_apple = apple_freq_ratio
-        analysis_result.keyword_monthly_trend = keyword_monthly_trend
-        analysis_result.save(update_fields=['freq_ratio_samsung',
-                                            'freq_ratio_apple',
-                                            'keyword_monthly_trend'])
+        analysis_result.freq_ratios = {"samsung": samsung_freq_ratio, "apple": apple_freq_ratio}
+        analysis_result.monthly_trends = monthly_trends
+        analysis_result.save(update_fields=['freq_ratios', 'monthly_trends'])
 
         print("[DONE] Step 1 데이터 분석 저장 완료")
 
@@ -71,37 +77,32 @@ def generate_summary_page_1_1(analysis_id):
 
     try:
         with transaction.atomic():
-            # AnalysisResults를 analysis_id로 조회
-            analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-            # 관련 데이터 추출
-            hobby_entry = analysis_result.hobby_id  
+            analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+            hobby_entry = analysis_result.hobby
             hobby = hobby_entry.hobby_name
-            sorted_keywords = analysis_result.selected_keywords  
+            sorted_keywords = analysis_result.keywords or []
+            freq = analysis_result.freq_ratios or {}
+            apple_ratio = freq.get('apple', {})
+            samsung_ratio = freq.get('samsung', {})
 
-            # 여기에 로그 추가 (핵심 데이터 상태 체크)
-            print(f"[DEBUG] analysis_id={analysis_id}")
-            print(f"[DEBUG] hobby={hobby}")
-            print(f"[DEBUG] sorted_keywords={sorted_keywords}")
-            print(f"[DEBUG] freq_ratio_apple={analysis_result.freq_ratio_apple}")
-            print(f"[DEBUG] freq_ratio_samsung={analysis_result.freq_ratio_samsung}")
-
-            # summary 생성 함수 호출
             summary = generate_summary_for_page_1_1(
                 hobby,
                 sorted_keywords,
-                analysis_result.freq_ratio_apple,
-                analysis_result.freq_ratio_samsung
+                apple_ratio,
+                samsung_ratio
             )
 
-            print(f"[DEBUG] 생성된 summary={summary}")
-
-            # 결과 저장
-            analysis_result.summary_page_1_1 = summary
-            analysis_result.save(update_fields=['summary_page_1_1'])  # 변경된 필드만 저장
+            summaries = {}
+            if analysis_result.summaries:
+                try:
+                    summaries = json.loads(analysis_result.summaries)
+                except (TypeError, json.JSONDecodeError):
+                    pass
+            summaries['summary_page_1_1'] = summary
+            analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+            analysis_result.save(update_fields=['summaries'])
 
             print("[DONE] summary_page_1_1 저장 완료")
-            print(f"[DEBUG] 저장 후 summary_page_1_1={analysis_result.summary_page_1_1}")
 
     except Exception as e:
         print(f"[ERROR] summary_page_1_1 Task 실패: {e}")
@@ -109,35 +110,57 @@ def generate_summary_page_1_1(analysis_id):
 @shared_task
 @timer 
 def generate_summary_page_1_2(analysis_id):
-
-    """Page 1-2 요약 Celery 비동기 Task"""
     print("[TASK] summary_page_1_2 작업 시작")
 
     try:
-        # AnalysisResults를 analysis_id로 조회
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-        # 관련 데이터 추출
-        hobby_entry = analysis_result.hobby_id  # FK라서 객체 바로 가져올 수 있음
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
-        keyword_monthly_trend = analysis_result.keyword_monthly_trend
-        
-        # 요약 생성 함수 호출
+        sorted_keywords = analysis_result.keywords or []
+        keyword_monthly_trend = analysis_result.monthly_trends or {}
+
         summary = generate_summary_for_page_1_2(
             hobby,
             sorted_keywords,
             keyword_monthly_trend
         )
 
-        # 결과 저장
-        analysis_result.summary_page_1_2 = summary
-        analysis_result.save(update_fields=['summary_page_1_2'])
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        summaries['summary_page_1_2'] = summary
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] summary_page_1_2 저장 완료")
 
     except Exception as e:
         print(f"[ERROR] summary_page_1_2 Task 실패: {e}")
+
+def _build_step2_dataframe():
+    """TbProcessedYoutube에서 sentence 단위 DataFrame 생성 (sentences 필드 한 줄 = 한 문장)"""
+    rows = []
+    for r in TbProcessedYoutube.objects.all().values(
+        'sentences', 'brand', 'sentiment_label', 'sentiment_score', 'like_count', 'commented_at'
+    ):
+        text = r.get('sentences') or ''
+        for line in (text if isinstance(text, str) else str(text)).split('\n'):
+            s = line.strip()
+            if not s:
+                continue
+            rows.append({
+                'sentence': s,
+                'brand': r['brand'],
+                'sentiment_label': r['sentiment_label'],
+                'sentiment_score': r['sentiment_score'],
+                'like_count': r['like_count'],
+                'comment_publish_date': r['commented_at'],
+            })
+    return pd.DataFrame(rows) if rows else pd.DataFrame(columns=['sentence', 'brand', 'sentiment_label', 'sentiment_score', 'like_count', 'comment_publish_date'])
+
 
 @shared_task
 @timer 
@@ -145,25 +168,12 @@ def run_analysis_step2_task(analysis_id):
     print("[TASK] Step 2 데이터 분석 시작")
 
     try:
-        # AnalysisResults 가져오기
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        #analysis_result.refresh_from_db() 
-        # 관련 정보 로드
-        hobby_entry = analysis_result.hobby_id
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby_name = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
+        sorted_keywords = analysis_result.keywords or []
 
-        # 데이터 로드 (한 번만 불러와서 필터링)
-        df = pd.DataFrame.from_records(
-            TbprocessedYoutube.objects.all().values(
-                'sentence',
-                'brand',
-                'sentiment_label',
-                'sentiment_score',
-                'like_count',
-                'comment_publish_date'
-            )
-        )
+        df = _build_step2_dataframe()
 
         # 감성 점수 계산
         samsung_sentiment_score = calc_keyword_sentiment_score(df, brand="samsung", keywords=sorted_keywords)
@@ -177,21 +187,19 @@ def run_analysis_step2_task(analysis_id):
         top_comments = get_top_comments(df, sorted_keywords)
         sentiment_top_sentences = summarize_sentences_with_llm(top_comments)
 
-        # 값 저장
-        print(f"[DEBUG] 저장 직전 summary_page_1_1={analysis_result.summary_page_1_1}")
-        analysis_result.sentiment_samsung_score = samsung_sentiment_score
-        analysis_result.sentiment_apple_score = apple_sentiment_score
-        analysis_result.sentiment_samsung_ratio = samsung_sentiment_ratio
-        analysis_result.sentiment_apple_ratio = apple_sentiment_ratio
-        analysis_result.sentiment_top_sentences = sentiment_top_sentences
-        print(f"[DEBUG] 저장 직전 summary_page_1_1={analysis_result.summary_page_1_1}")
-        analysis_result.save(update_fields=[
-            'sentiment_samsung_score',
-            'sentiment_apple_score',
-            'sentiment_samsung_ratio',
-            'sentiment_apple_ratio',
-            'sentiment_top_sentences'
-        ])
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        summaries['sentiment_samsung_score'] = samsung_sentiment_score
+        summaries['sentiment_apple_score'] = apple_sentiment_score
+        summaries['sentiment_samsung_ratio'] = samsung_sentiment_ratio
+        summaries['sentiment_apple_ratio'] = apple_sentiment_ratio
+        summaries['sentiment_top_sentences'] = sentiment_top_sentences
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] Step 2 데이터 분석 저장 완료")
 
@@ -204,29 +212,31 @@ def generate_summary_page_2_1(analysis_id):
     print("[TASK] summary_page_2_1 작업 시작")
 
     try:
-        # AnalysisResults를 analysis_id로 조회
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-        # 관련 데이터 추출
-        hobby_entry = analysis_result.hobby_id  # FK라서 객체 바로 가져올 수 있음
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
-        keyword_monthly_trend = analysis_result.keyword_monthly_trend
+        sorted_keywords = analysis_result.keywords or []
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        keyword_monthly_trend = analysis_result.monthly_trends or {}
 
-        # 요약 생성 함수 호출
         summary = generate_summary_for_page_2_1(
             hobby,
             sorted_keywords,
-            analysis_result.sentiment_apple_score,
-            analysis_result.sentiment_samsung_score,
-            analysis_result.sentiment_apple_ratio,
-            analysis_result.sentiment_samsung_ratio,
-            analysis_result.keyword_monthly_trend
+            summaries.get('sentiment_apple_score'),
+            summaries.get('sentiment_samsung_score'),
+            summaries.get('sentiment_apple_ratio'),
+            summaries.get('sentiment_samsung_ratio'),
+            keyword_monthly_trend
         )
 
-        # 저장
-        analysis_result.summary_page_2_1 = summary
-        analysis_result.save(update_fields=['summary_page_2_1'])
+        summaries['summary_page_2_1'] = summary
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] summary_page_2_1 저장 완료")
 
@@ -239,24 +249,27 @@ def generate_summary_page_2_2(analysis_id):
     print("[TASK] summary_page_2_2 작업 시작")
 
     try:
-        # AnalysisResults를 analysis_id로 조회
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-        # 관련 데이터 추출
-        hobby_entry = analysis_result.hobby_id  # FK라서 객체 바로 가져올 수 있음
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
+        sorted_keywords = analysis_result.keywords or []
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        sentiment_top_sentences = summaries.get('sentiment_top_sentences') or {}
 
-        # 요약 생성 함수 호출
         summary = generate_summary_for_page_2_2(
             hobby,
             sorted_keywords,
-            analysis_result.sentiment_top_sentences
+            sentiment_top_sentences
         )
 
-        # 저장
-        analysis_result.summary_page_2_2 = summary
-        analysis_result.save(update_fields=['summary_page_2_2'])
+        summaries['summary_page_2_2'] = summary
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] summary_page_2_2 저장 완료")
 
@@ -270,42 +283,38 @@ def run_analysis_step3_task(analysis_id):
     print("[TASK] Step 3 데이터 분석 시작")
 
     try:
-        # AnalysisResults 가져오기
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        # analysis_result.refresh_from_db() 
-        # 관련 정보 로드
-        hobby_entry = analysis_result.hobby_id
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby_name = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
+        sorted_keywords = analysis_result.keywords or []
 
-        # RAG 검색 → 각 브랜드 문장 수집
         related_sentences_samsung = search_related_sentences(hobby_name, brand="samsung")
         related_sentences_apple = search_related_sentences(hobby_name, brand="apple")
 
-        # LLM 키워드 추출 (20개)
         extracted_keywords_samsung = extract_keywords_with_llm(related_sentences_samsung, top_k=20)
         extracted_keywords_apple = extract_keywords_with_llm(related_sentences_apple, top_k=20)
 
-        # 포맷 맞추기 (dict 형태)
         related_words_samsung = {
             "brand": "samsung",
             "center": hobby_name,
             "related_words": extracted_keywords_samsung
         }
-
         related_words_apple = {
             "brand": "apple",
             "center": hobby_name,
             "related_words": extracted_keywords_apple
         }
 
-        # 값 저장
-        # analysis_result.refresh_from_db()
-        analysis_result.related_words_samsung = related_words_samsung
-        analysis_result.related_words_apple = related_words_apple
-        analysis_result.save(update_fields=[''
-        'related_words_samsung',
-        'related_words_apple'])
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        summaries['related_words_samsung'] = related_words_samsung
+        summaries['related_words_apple'] = related_words_apple
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] Step 3 데이터 분석 저장 완료")
 
@@ -318,23 +327,29 @@ def generate_summary_page_3(analysis_id):
     print("[TASK] summary_page_3 작업 시작")
 
     try:
-        # AnalysisResults를 analysis_id로 조회
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-
-        # 관련 데이터 추출
-        hobby_entry = analysis_result.hobby_id  # FK라서 객체 바로 가져올 수 있음
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
         hobby = hobby_entry.hobby_name
-        sorted_keywords = analysis_result.selected_keywords
+        sorted_keywords = analysis_result.keywords or []
+        summaries = {}
+        if analysis_result.summaries:
+            try:
+                summaries = json.loads(analysis_result.summaries)
+            except (TypeError, json.JSONDecodeError):
+                pass
+        related_words_apple = summaries.get('related_words_apple') or {}
+        related_words_samsung = summaries.get('related_words_samsung') or {}
 
         summary = generate_summary_for_page_3(
             hobby,
             sorted_keywords,
-            analysis_result.related_words_apple,
-            analysis_result.related_words_samsung
+            related_words_apple,
+            related_words_samsung
         )
 
-        analysis_result.summary_page_3 = summary
-        analysis_result.save(update_fields=['summary_page_3'])
+        summaries['summary_page_3'] = summary
+        analysis_result.summaries = json.dumps(summaries, ensure_ascii=False)
+        analysis_result.save(update_fields=['summaries'])
 
         print("[DONE] summary_page_3 저장 완료")
 
@@ -343,12 +358,11 @@ def generate_summary_page_3(analysis_id):
 
 @shared_task
 @timer 
-# rag로 폰 추천하고 DB에 저장하는 task
 def run_analysis_step4_task(analysis_id):
     try:
-        analysis_result = AnalysisResults.objects.get(analysis_id=analysis_id)
-        hobby_entry = analysis_result.hobby_id
-        selected_keywords = analysis_result.selected_keywords
+        analysis_result = TbAnalysisResults.objects.get(analysis_id=analysis_id)
+        hobby_entry = analysis_result.hobby
+        selected_keywords = analysis_result.keywords or []
 
         exists = PhoneRecommendations.objects.filter(
             hobby_id=hobby_entry,
